@@ -1,0 +1,14 @@
+name: Brainhack
+channels:
+  - conda-forge
+dependencies:
+  - python==3.13.7
+  - pip
+  - scipy
+  - jupyterlab
+  - mne
+  - pyserial
+  - mne-lsl
+  - pip:
+      - brainflow
+      - pylsl

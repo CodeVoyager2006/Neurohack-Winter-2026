@@ -1,0 +1,12 @@
+name: Brainhack_compatibility 
+channels:
+  - conda-forge
+dependencies:
+  - python==3.10.17
+  - pip
+  - scipy
+  - jupyterlab
+  - mne
+  - pyserial
+  - pip:
+      - brainflow
