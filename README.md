@@ -28,8 +28,8 @@ Welcome to the **SURGE Neurotech Hackathon 2026**, where you'll get hands-on exp
     - [**3️⃣ Choose Your Challenge Stream and Get Hacking!**](#3️⃣-choose-your-challenge-stream-and-get-hacking)
 - [Don't know where to start? Check this out!](#dont-know-where-to-start-check-this-out)
 - [Repository Table of Contents](#repository-table-of-contents)
-  - [📂 BrainHack-Fall-2025](#-brainhack-fall-2025)
-    - [📂 getting-setup - Instructions on how to setup python](#-getting-setup---instructions-on-how-to-setup-python)
+  - [📂 Neurohack-Winter-2026](#-neurohack-winter-2026)
+    - [📂 getting-setup – Instructions on how to set up Python](#-getting-setup--instructions-on-how-to-set-up-python)
     - [📂 real-time-bci-stream – Resources \& starter code for real-time EEG applications](#-real-time-bci-stream--resources--starter-code-for-real-time-eeg-applications)
     - [📂 offline-analysis-stream – Resources \& starter code for EEG data analysis](#-offline-analysis-stream--resources--starter-code-for-eeg-data-analysis)
     - [📂 resources – Learning materials and references](#-resources--learning-materials-and-references)
@@ -107,6 +107,7 @@ We have **three challenge tracks** you can choose from:
 **🎯 Challenge & Goal:** Design, build, or modify EEG hardware to improve signal acquisition, create a novel sensing device, or interface custom hardware with a BCI pipeline.
 
 **Example Ideas:**
+   - A **Novel visual paradigm**
    - A **custom EEG electrode array or headset**
    - A **hardware-accelerated signal processing pipeline**
    - A **low-cost, DIY EEG amplifier or biosignal interface**
@@ -174,24 +175,30 @@ Dr. Aaron Newman produced a free online textbook that is a **fantastic place to 
 
 # Repository Table of Contents
 
-## 📂 [BrainHack-Fall-2025](./)
-- 📜 [README.md](./README.md) – Main documentation
+## 📂 [Neurohack-Winter-2026](./)
+- 📜 [README.md](README.md) – Main documentation
 
-### 📂 [getting-setup](./getting-setup/) - Instructions on how to setup python
-- 📄 [python_setup.md](./getting-setup/python_setup.md) – Instructions on how to setup python
-- 🐍 [brainhack_env.yaml](./getting-setup/brainhack_env.yaml) - Anaconda environment file with python 3.13 to get you started
-- 🐍 [compatibility_brainhack_env.yaml](./getting-setup/brainhack_env.yaml) - Anaconda environment file with python 3.10 to get you started
+### 📂 [getting-setup](getting-setup/) – Instructions on how to set up Python
+- 📄 [python_setup.md](getting-setup/python_setup.md) – Python setup instructions
+- 🐍 [brainhack_env.yaml](getting-setup/brainhack_env.yaml) – Anaconda environment file (Python 3.13)
+- 🐍 [compatibility_brainhack_env.yaml](getting-setup/compatibility_brainhack_env.yaml) – Anaconda environment file (Python 3.10)
 
-### 📂 [real-time-bci-stream](./real-time-bci-stream/) – Resources & starter code for real-time EEG applications
-  - 📄 [cyton_setup_instructions.md](./real-time-bci-stream/cyton_setup_instructions.md) – Setup guide
-  - 📂 [sample-data/](./real-time-bci-stream/sample-data/) – Example EEG data
-  - 📂 [example-scripts/](./real-time-bci-stream/example-scripts/) – Starter code for real-time BCI
+### 📂 [real-time-bci-stream](real-time-bci-stream/) – Resources & starter code for real-time EEG applications
+- 📄 [cyton_setup_instructions.md](real-time-bci-stream/cyton_setup_instructions.md) – Cyton board setup guide
+- 📂 [sample-data](real-time-bci-stream/sample-data/) – Example EEG data
+- 📂 [example-scripts](real-time-bci-stream/example-scripts/) – Starter code for real-time BCI
+  - [brainflow_stream.py](real-time-bci-stream/example-scripts/brainflow_stream.py)
+  - [Realtime_Stream_Example_Notebook.ipynb](real-time-bci-stream/example-scripts/Realtime_Stream_Example_Notebook.ipynb)
 
-### 📂 [offline-analysis-stream](./offline-analysis-stream/) – Resources & starter code for EEG data analysis
-  - 📄 [dataset_description.md](./offline-analysis-stream/dataset_description.md) – Information on the dataset
-  - 📂 [example-scripts/](./offline-analysis-stream/example-scripts/) – Starter scripts for EEG analysis
+### 📂 [offline-analysis-stream](offline-analysis-stream/) – Resources & starter code for EEG data analysis
+- 📄 [dataset_description.md](offline-analysis-stream/dataset_description.md) – Dataset information
+- 📂 [example-scripts](offline-analysis-stream/example-scripts/) – Starter scripts for EEG analysis
+  - [Offline_Stream_Example_Notebook.ipynb](offline-analysis-stream/example-scripts/Offline_Stream_Example_Notebook.ipynb)
+- 📂 [sample-data](offline-analysis-stream/sample-data/) – Provided EEG datasets
+  - Flicker, FlickerOddball, Oddball subfolders with .fif files
 
-### 📂 [resources](./resources/) – Learning materials and references
-  - 📄 [bci_basics.md](./resources/bci_basics.md) – Introduction to BCI concepts
-  - 📄 [useful_links.md](./resources/useful_links.md) – Reference materials and links
-  - 📄 [judging_rubrics.mb](./resources/Juding_rubrics.pdf) – Outline of deliverables for each stream & judging rubrics
+### 📂 [resources](resources/) – Learning materials and references
+- 📄 [bci_basics.md](resources/bci_basics.md) – BCI concepts introduction
+- 📄 [useful_links.md](resources/useful_links.md) – Reference materials and links
+- 📄 [Judging_rubrics.pdf](resources/Juding_rubrics.pdf) – Deliverables outline & judging rubrics
+- 📂 [images](resources/images/) – Images and figures
