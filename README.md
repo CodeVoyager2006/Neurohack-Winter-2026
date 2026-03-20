@@ -74,7 +74,7 @@ We have **three challenge tracks** you can choose from:
 
 ### Real-Time BCI Deliverables
 
-- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Juding_rubrics.pdf) A general template for your presentation should include:
+- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
   -  Problem Statement & Motivation  
   - System Design & Implementation 
   - A live Demonstration (or a pre-recorded demo if real-time is not possible)  
@@ -92,7 +92,7 @@ We have **three challenge tracks** you can choose from:
 
 ### Offline EEG Data/ML Deliverables
 
-- **Project Presentation** (12 minutes max.) - see the [rubric for details.](./resources/Juding_rubrics.pdf) A general template for your presentation should include:
+- **Project Presentation** (12 minutes max.) - see the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
   - Problem Statement & Motivation  
   - What you did with the data (preprocessing, analysis, modeling) 
   - Results & Interpretation (accuracy, feature importance, visualization of findings, etc.)  
@@ -114,7 +114,7 @@ We have **three challenge tracks** you can choose from:
 
 ### Hardware Hacking Deliverables
 
-- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Juding_rubrics.pdf) A general template for your presentation should include:
+- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
   - Problem Statement & Motivation
   - Hardware Design & Implementation (schematics, components, build process)
   - A live Demonstration (or a pre-recorded demo)
@@ -130,7 +130,7 @@ We have **three challenge tracks** you can choose from:
 - **Submission Deadline: Sunday, 1:00 PM**
 - **Judging Format:** A **short presentation** followed by a **5-minute Q&A** session from the judges.
   - Order of team presentations will be decided at random.
-- **Judging Criteria:** Projects will be evaluated based on the [rubrics provided for each challenge stream.](./resources/Juding_rubrics.pdf)
+- **Judging Criteria:** Projects will be evaluated based on the [rubrics provided for each challenge stream.](./resources/Judging_rubrics.pdf)
 - **Prizes:** Top teams from each stream will bragging rights, a great addition to your CV, and sweet SURGE swag prizes!
 
 ### Submission Process
@@ -200,5 +200,5 @@ Dr. Aaron Newman produced a free online textbook that is a **fantastic place to 
 ### 📂 [resources](resources/) – Learning materials and references
 - 📄 [bci_basics.md](resources/bci_basics.md) – BCI concepts introduction
 - 📄 [useful_links.md](resources/useful_links.md) – Reference materials and links
-- 📄 [Judging_rubrics.pdf](resources/Juding_rubrics.pdf) – Deliverables outline & judging rubrics
+- 📄 [Judging_rubrics.pdf](resources/Judging_rubrics.pdf) – Deliverables outline & judging rubrics
 - 📂 [images](resources/images/) – Images and figures
