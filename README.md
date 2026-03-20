@@ -1,27 +1,12 @@
-# Neurotech Hackathon Template
-
-# How to use this template:
-1. Create new repository
-   - Under `Start with a template` select `Neurotech-Hackathon-Template` (this one)
-   - No need to add a README, or gitignore (they're already in the template!)
-2. Update/fill in details in the newly created repository!
-
-**Notes:**
-- The Table of contents in *this* README is generated with a vscode extension ["Markdown All in One"](https://github.com/yzhang-gh/vscode-markdown) - it is required to update the TOC
-
----
-
 # 🧠 Welcome to the Winter 2026 SURGE Neurotech Hackathon!
 
-Welcome to the **SURGE Neurotech Hack 2026**, where you'll get hands-on experience developing Brain-Computer Interfaces (BCIs) and analyzing neural data. Over the course of this weekend, you'll work in teams to prototype applications using EEG data. 
+Welcome to the **SURGE Neurotech Hackathon 2026**, where you'll get hands-on experience developing Brain-Computer Interfaces (BCIs) and analyzing neural data. Over the course of this weekend, you'll work in teams to prototype applications using EEG data. 
 
 <details>
 <summary>Table of Contents</summary>
 
 ## Table of Contents
 
-- [Neurotech Hackathon Template](#neurotech-hackathon-template)
-- [How to use this template:](#how-to-use-this-template)
 - [🧠 Welcome to the Winter 2026 SURGE Neurotech Hackathon!](#-welcome-to-the-winter-2026-surge-neurotech-hackathon)
   - [Table of Contents](#table-of-contents)
 - [General Information:](#general-information)
@@ -54,17 +39,16 @@ Welcome to the **SURGE Neurotech Hack 2026**, where you'll get hands-on experien
 # General Information:
 
 ## Support & Collaboration
-- Join the **#<ch_name>** channel on the [SURGE Discord server](https://discord.gg/WKTet49nE5) to ask questions, share ideas, and collaborate with other participants.
+- Join the [SURGE Discord server](https://discord.gg/WKTet49nE5) to ask questions, share ideas, and collaborate with other participants!
 - Refer back to the [introduction presentation](https://docs.google.com/presentation/d/1Kv9ZSb0_6BqbbZlZWzYRzQ__WZipsEUCZKcd4CUvxyY/edit?usp=sharing)
-- Reach out directly to me at [mascini.max@dal.ca](mailto:mascini.max@dal.ca)! (Please keep in mind I may be busy helping other teams, so I may not respond immediately)
 
 ## Hackathon Schedule
 
-- **Day 1 (Friday 5:00pm-8:00pm):** Introduction to BCI, EEG, and Team Formation
-- **Day 2 (Saturday 10:00am-4:00pm):** Hacking!
-- **Day 3 (Sunday 10:00am-3:00pm):** Project wrap-up & submission, team presentations, and judging!
-  - Submission Deadline: Sunday @ 1:00 PM
-  - Presentations: 1:10 PM - 3:00 PM
+- **Day 1 (Friday 6:00pm-8:00pm):** Introduction to BCI, EEG, and Team Formation
+- **Day 2 (Saturday 9:00am-5:00pm):** Hacking!
+- **Day 3 (Sunday 9:00am-4:00pm):** Project wrap-up & submission, team presentations, and judging!
+  - Submission Deadline: Sunday @ 1:45 PM
+  - Presentations: 2:00 PM - 3:30 PM
 
 ## Rules:
 1. You are free to use any hardware or software tools you like, but we recommend using the resources provided in this repository.
@@ -161,8 +145,8 @@ We have **three challenge tracks** you can choose from:
 # 📌 Getting Started
 ### **1️⃣ Clone this Repository**
 ```bash
-git clone https://github.com/SURGE-NeuroTech-Club/<your_repo_name>.git
-cd <your_repo_name>
+git clone https://github.com/SURGE-NeuroTech-Club/Neurohack-Winter-2026.git
+cd Neurohack-Winter-2026
 ```
 
 ### **2️⃣ Install Dependencies**

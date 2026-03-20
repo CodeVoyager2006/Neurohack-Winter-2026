@@ -14,7 +14,7 @@ This dataset contains **EEG recordings from 10 participants** who performed thre
 
 # 📥 Download the Data  
 
-- **Data files:** [Download link](https://ncilnas.psychology.dal.ca:5001/sharing/elOuhz5LW) (password: `SURGE-brainhack-F25`)  
+- **Data files:** [Download link](https://ncilnas.psychology.dal.ca:5001/sharing/CQCcpAIhC) (password: `Neurotech-hack-W26`)  
 - Each participant × task = one `.fif` file with **raw EEG + event markers**.  
   - See [resources](#dataset-structure-example) for dataset structure.
 - A starter notebook ([`Offline_Stream_Example_Notebook`](example-scripts/Offline_Stream_Example_Notebook.ipynb)) shows how to load and visualize the data with [MNE-Python](https://mne.tools/stable/index.html).  
