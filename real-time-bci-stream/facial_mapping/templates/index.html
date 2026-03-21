@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FaceMap · Facial Expression Mirror</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════
+       TOP BAR
+  ════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar__logo">
+      <span class="topbar__logo-mark">◈</span>
+      <span class="topbar__logo-text">FaceMap</span>
+    </div>
+    <div class="topbar__subtitle">Facial Symmetry Visualiser</div>
+  </header>
+
+  <!-- ════════════════════════════════════════════
+       SETUP PANEL  (Step 1 – choose side)
+  ════════════════════════════════════════════ -->
+  <section id="setup-panel" class="panel panel--setup">
+    <div class="setup-card">
+      <h1 class="setup-card__title">Select the side to map</h1>
+      <p class="setup-card__desc">
+        The chosen side will be blacked out and reconstructed from
+        your opposite side in real-time.
+      </p>
+
+      <div class="side-picker">
+        <button class="side-btn" data-side="left">
+          <span class="side-btn__icon">◧</span>
+          <span class="side-btn__label">Left side</span>
+          <span class="side-btn__hint">Mirror from right</span>
+        </button>
+        <div class="side-picker__divider">or</div>
+        <button class="side-btn" data-side="right">
+          <span class="side-btn__icon">◨</span>
+          <span class="side-btn__label">Right side</span>
+          <span class="side-btn__hint">Mirror from left</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       MAIN VISUALISER  (Step 2 – live view)
+  ════════════════════════════════════════════ -->
+  <section id="visualiser-panel" class="panel panel--visualiser hidden">
+
+    <!-- ── Left: camera + canvas overlay ─────── -->
+    <div class="viewer">
+      <div class="viewer__frame">
+        <!-- Hidden video feed from the webcam -->
+        <video id="webcam" autoplay muted playsinline></video>
+
+        <!-- Main canvas – composites video + blackout + landmark drawing -->
+        <canvas id="main-canvas"></canvas>
+
+        <!-- Status badge shown when no face is detected -->
+        <div id="no-face-badge" class="status-badge status-badge--warn hidden">
+          No face detected
+        </div>
+
+        <!-- Calibrating badge shown on first load -->
+        <div id="calibrating-badge" class="status-badge status-badge--info">
+          Calibrating…
+        </div>
+      </div>
+
+      <!-- Bottom bar: side indicator + recalibrate -->
+      <div class="viewer__controls">
+        <span id="active-side-label" class="viewer__side-label"></span>
+        <button id="recalibrate-btn" class="btn btn--ghost">↺ Recalibrate</button>
+        <button id="change-side-btn" class="btn btn--ghost">⇄ Change side</button>
+      </div>
+    </div>
+
+    <!-- ── Right: expression buttons ─────────── -->
+    <aside class="expression-panel">
+      <h2 class="expression-panel__title">Expression</h2>
+
+      <div class="expression-panel__buttons">
+        <button class="expr-btn" data-expr="neutral" title="Neutral resting position">
+          <span class="expr-btn__icon">◉</span>
+          <span class="expr-btn__label">Neutral</span>
+        </button>
+        <button class="expr-btn" data-expr="raise" title="Raise eyebrow">
+          <span class="expr-btn__icon">↑</span>
+          <span class="expr-btn__label">Raise Eyebrow</span>
+        </button>
+        <button class="expr-btn" data-expr="knit" title="Knit eyebrow">
+          <span class="expr-btn__icon">↔</span>
+          <span class="expr-btn__label">Knit Eyebrow</span>
+        </button>
+        <button class="expr-btn" data-expr="lookup" title="Look up">
+          <span class="expr-btn__icon">⬆</span>
+          <span class="expr-btn__label">Look Up</span>
+        </button>
+        <button class="expr-btn" data-expr="lookdown" title="Look down">
+          <span class="expr-btn__icon">⬇</span>
+          <span class="expr-btn__label">Look Down</span>
+        </button>
+      </div>
+
+      <div class="expression-panel__legend">
+        <div class="legend-row"><span class="dot dot--eyebrow"></span>Eyebrow</div>
+        <div class="legend-row"><span class="dot dot--eye"></span>Eye contour</div>
+        <div class="legend-row"><span class="dot dot--iris"></span>Iris</div>
+        <div class="legend-row"><span class="dot dot--mouth"></span>Mouth corners</div>
+      </div>
+    </aside>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════ -->
+  <script src="/static/js/utils.js"></script>
+  <script src="/static/js/renderer.js"></script>
+  <script src="/static/js/expressions.js"></script>
+  <script src="/static/js/app.js"></script>
+
+</body>
+</html>
