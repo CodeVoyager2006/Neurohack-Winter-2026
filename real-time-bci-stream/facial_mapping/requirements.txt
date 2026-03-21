@@ -1,0 +1,25 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# requirements.txt  –  FaceMap Facial Mapping Application
+# ──────────────────────────────────────────────────────────────────────────────
+# Python 3.13 compatible
+#
+# Install all dependencies with:
+#   pip install -r requirements.txt
+#
+# Package purpose summary
+# ─────────────────────────────────────────────────────────────────────────────
+# flask          Web framework – serves the HTML page and /api/process-frame
+# flask-cors     Adds CORS headers so browser fetch() calls work without errors
+# opencv-python  Image decoding and colour-space conversion (BGR ↔ RGB)
+# mediapipe      Google's Face Mesh model – 478 facial landmark detection
+# numpy          Array math used internally by OpenCV and MediaPipe
+# Pillow         PIL – decodes base-64 JPEG/PNG frames from the browser
+# ─────────────────────────────────────────────────────────────────────────────
+ 
+flask==3.1.0
+flask-cors==5.0.0
+opencv-python==4.10.0.84
+mediapipe==0.10.18
+numpy==2.2.4
+Pillow==11.1.0
+ 
