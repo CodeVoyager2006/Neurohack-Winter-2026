@@ -424,3 +424,127 @@ html, body {
 .dot--eye     { background: #44aaff; }
 .dot--iris    { background: #ff6644; }
 .dot--mouth   { background: #44ff88; }
+
+/* ── EEG Prediction Panel ─────────────────────────────── */
+.eeg-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eeg-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.eeg-panel__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.eeg-mode-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.eeg-mode-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.eeg-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.eeg-section-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-top: 2px;
+}
+
+.eeg-section-label--top {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.eeg-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.eeg-row--match {
+  padding-top: 8px;
+  justify-content: center;
+}
+
+.eeg-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.eeg-value {
+  font-size: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eeg-value--accent {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.eeg-match {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.eeg-match--ok {
+  border-color: #44ff88;
+  color: #44ff88;
+  background: rgba(68, 255, 136, 0.08);
+}
+
+.eeg-match--fail {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: rgba(240, 160, 48, 0.08);
+}
+
+/* Disabled expression buttons in auto mode */
+.expr-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}

@@ -38,6 +38,9 @@ def create_app() -> Flask:
     from routes.landmarks import landmarks_bp
     app.register_blueprint(landmarks_bp)
 
+    from routes.eeg_predict import eeg_predict_bp
+    app.register_blueprint(eeg_predict_bp)
+
     # ── Root route ───────────────────────────────────────────────────────
     @app.route("/")
     def index():

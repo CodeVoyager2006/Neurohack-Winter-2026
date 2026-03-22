@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \":*)",
+      "Bash(python3 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu -q)",
+      "Bash(python3 -m pip list)",
+      "Bash(python3 -m pip install scikit-learn -q)",
+      "Bash(python train_eeg_transformer.py --final)",
+      "Bash(python -u train_eeg_transformer.py --final)",
+      "Bash(python -u train_eeg_transformer.py --final --skip-mne)",
+      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\(''resources/final_bci_master.csv'', nrows=2\\); print\\(list\\(df.columns\\)\\)\")",
+      "Bash(python test_predict.py)",
+      "Bash(python -c \":*)",
+      "Bash(find '/c/Users/CS Guest.DESKTOP-GU1NI51/Desktop/NeuroHack/Neurohack-Winter-2026' -type f \\\\\\(-name *.html -o -name *.js -o -name *.css -o -name *.py -o -name *.json -o -name *.md \\\\\\) ! -path */.git/* ! -path */node_modules/*)",
+      "Bash(where python:*)",
+      "Bash(python -m pip show flask)",
+      "Bash(py -3 -m pip show flask)",
+      "Bash(py -3 -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(python3 -c \"import flask; print\\(''Flask OK:'', flask.__version__\\)\")",
+      "Bash(python -c \"import sys; print\\(sys.version\\); import subprocess; result = subprocess.run\\([''pip'', ''list''], capture_output=True, text=True\\); print\\(result.stdout[:500]\\)\")",
+      "Bash(python -m pip list)",
+      "Bash(python -m pip install flask flask-cors)"
+    ]
+  }
+}

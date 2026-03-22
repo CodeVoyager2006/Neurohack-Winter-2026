@@ -42,9 +42,11 @@
 
 // ── Configuration ────────────────────────────────────────────────────
 const API_URL            = "/api/process-frame";
+const EEG_API_URL        = "/api/eeg-predict";
 const FRAME_INTERVAL_MS  = 80;    // ~12 fps polling rate to server
 const CALIBRATION_FRAMES = 10;    // frames averaged before going live
 const JPEG_QUALITY       = 0.6;   // trade-off between speed and accuracy
+const EEG_POLL_MS        = 2000;  // new EEG sample every 2 seconds
 
 // ── Application State ────────────────────────────────────────────────
 const State = {
@@ -85,6 +87,15 @@ const State = {
 
   /** Interval handle for the polling loop */
   loopHandle: null,
+
+  /**
+   * EEG mode: "manual" — expression buttons control projection
+   *           "auto"   — model prediction drives setExpression()
+   */
+  eegMode: "manual",
+
+  /** Interval handle for the EEG polling loop */
+  eegLoopHandle: null,
 };
 
 // ── DOM References ───────────────────────────────────────────────────
@@ -100,6 +111,16 @@ const DOM = {
   changeSideBtn:    document.getElementById("change-side-btn"),
   sideButtons:      document.querySelectorAll(".side-btn"),
   exprButtons:      document.querySelectorAll(".expr-btn"),
+  // EEG panel
+  eegModeBtn:       document.getElementById("eeg-mode-btn"),
+  eegCsvIndex:      document.getElementById("eeg-csv-index"),
+  eegSession:       document.getElementById("eeg-session"),
+  eegWindow:        document.getElementById("eeg-window"),
+  eegTrueLabel:     document.getElementById("eeg-true-label"),
+  eegPrediction:    document.getElementById("eeg-prediction"),
+  eegConfidence:    document.getElementById("eeg-confidence"),
+  eegExpression:    document.getElementById("eeg-expression"),
+  eegMatch:         document.getElementById("eeg-match"),
 };
 
 // ── Initialisation ───────────────────────────────────────────────────
@@ -122,6 +143,11 @@ function initEventListeners() {
     });
   });
 
+  // EEG mode toggle
+  DOM.eegModeBtn.addEventListener("click", () => {
+    toggleEEGMode();
+  });
+
   // Recalibrate – keep the same side, reset calibration state
   DOM.recalibrateBtn.addEventListener("click", () => {
     resetCalibration();
@@ -130,6 +156,7 @@ function initEventListeners() {
   // Change side – go back to setup panel
   DOM.changeSideBtn.addEventListener("click", () => {
     stopLoop();
+    stopEEGLoop();
     showSetupPanel();
   });
 }
@@ -177,6 +204,7 @@ async function startSession(mappedSide) {
   // Begin calibration + polling loop
   resetCalibration();
   startLoop();
+  startEEGLoop();
 }
 
 // ── Webcam ───────────────────────────────────────────────────────────
@@ -408,6 +436,86 @@ function setExpression(name) {
   DOM.exprButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.expr === name);
   });
+}
+
+// ── EEG Prediction ───────────────────────────────────────────────────
+
+/**
+ * Toggle between manual expression control and EEG-driven auto mode.
+ * Manual: expression buttons work normally.
+ * Auto:   model prediction fires setExpression() every EEG_POLL_MS.
+ *         Expression buttons are disabled (read-only visual feedback).
+ */
+function toggleEEGMode() {
+  State.eegMode = State.eegMode === "manual" ? "auto" : "manual";
+  const isAuto  = State.eegMode === "auto";
+
+  DOM.eegModeBtn.textContent = isAuto ? "Auto: ON" : "Auto: OFF";
+  DOM.eegModeBtn.classList.toggle("active", isAuto);
+
+  // Disable manual buttons in auto mode so they only reflect the prediction
+  DOM.exprButtons.forEach(btn => { btn.disabled = isAuto; });
+}
+
+/**
+ * Start the EEG polling interval.
+ * Fires an immediate first request, then repeats every EEG_POLL_MS.
+ */
+function startEEGLoop() {
+  if (State.eegLoopHandle) return;
+  pollEEG();  // immediate first sample
+  State.eegLoopHandle = setInterval(pollEEG, EEG_POLL_MS);
+}
+
+/** Stop the EEG polling interval. */
+function stopEEGLoop() {
+  if (!State.eegLoopHandle) return;
+  clearInterval(State.eegLoopHandle);
+  State.eegLoopHandle = null;
+}
+
+/**
+ * Fetch a new EEG prediction from the server (random CSV row → model),
+ * update the status panel, and — if in auto mode — drive the expression.
+ */
+async function pollEEG() {
+  try {
+    const resp = await fetch(EEG_API_URL);
+    const data = await resp.json();
+
+    if (!data.success) {
+      console.warn("EEG predict error:", data.error);
+      return;
+    }
+
+    updateEEGPanel(data);
+
+    if (State.eegMode === "auto") {
+      setExpression(data.expression);
+    }
+  } catch (err) {
+    console.warn("EEG poll failed:", err);
+  }
+}
+
+/**
+ * Populate the EEG status panel with the latest prediction result.
+ *
+ * @param {object} data  - response from /api/eeg-predict
+ */
+function updateEEGPanel(data) {
+  const matched = data.prediction === data.true_label;
+
+  DOM.eegCsvIndex.textContent   = `#${data.csv_index}`;
+  DOM.eegSession.textContent    = data.session;
+  DOM.eegWindow.textContent     = `${data.window_start_s.toFixed(2)}s – ${data.window_end_s.toFixed(2)}s`;
+  DOM.eegTrueLabel.textContent  = data.true_label;
+  DOM.eegPrediction.textContent = data.prediction;
+  DOM.eegConfidence.textContent = `${(data.confidence * 100).toFixed(1)}%`;
+  DOM.eegExpression.textContent = data.expression;
+
+  DOM.eegMatch.textContent  = matched ? "MATCH" : "MISMATCH";
+  DOM.eegMatch.className    = `eeg-match ${matched ? "eeg-match--ok" : "eeg-match--fail"}`;
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────

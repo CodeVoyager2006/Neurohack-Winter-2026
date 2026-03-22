@@ -115,6 +115,54 @@
         <div class="legend-row"><span class="dot dot--iris"></span>Iris</div>
         <div class="legend-row"><span class="dot dot--mouth"></span>Mouth corners</div>
       </div>
+
+      <!-- ── EEG Prediction Panel ──────────────────────── -->
+      <div class="eeg-panel">
+        <div class="eeg-panel__header">
+          <span class="eeg-panel__title">⚡ EEG Prediction</span>
+          <button id="eeg-mode-btn" class="btn btn--ghost eeg-mode-btn">Auto: OFF</button>
+        </div>
+
+        <div class="eeg-panel__body" id="eeg-panel-body">
+
+          <div class="eeg-section-label">Input sample</div>
+          <div class="eeg-row">
+            <span class="eeg-label">CSV row</span>
+            <span id="eeg-csv-index" class="eeg-value">—</span>
+          </div>
+          <div class="eeg-row">
+            <span class="eeg-label">Session</span>
+            <span id="eeg-session" class="eeg-value">—</span>
+          </div>
+          <div class="eeg-row">
+            <span class="eeg-label">Window</span>
+            <span id="eeg-window" class="eeg-value">—</span>
+          </div>
+
+          <div class="eeg-section-label eeg-section-label--top">Model output</div>
+          <div class="eeg-row">
+            <span class="eeg-label">True label</span>
+            <span id="eeg-true-label" class="eeg-value">—</span>
+          </div>
+          <div class="eeg-row">
+            <span class="eeg-label">Predicted</span>
+            <span id="eeg-prediction" class="eeg-value">—</span>
+          </div>
+          <div class="eeg-row">
+            <span class="eeg-label">Confidence</span>
+            <span id="eeg-confidence" class="eeg-value">—</span>
+          </div>
+          <div class="eeg-row">
+            <span class="eeg-label">Expression</span>
+            <span id="eeg-expression" class="eeg-value eeg-value--accent">—</span>
+          </div>
+          <div class="eeg-row eeg-row--match">
+            <span id="eeg-match" class="eeg-match">—</span>
+          </div>
+
+        </div>
+      </div>
+
     </aside>
 
   </section>
