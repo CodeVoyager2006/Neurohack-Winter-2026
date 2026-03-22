@@ -1,24 +1,38 @@
-# merge-application — Stroke Rehab BCI (Unified Launcher)
+# merge-application — Unified BCI Launcher
 
-Merges the **data-capture** and **live-inference** pipelines into a single
-entry point with a minimal dark-themed launcher.
+A single `main.py` entry point that sits at the root of the project and
+lets you launch either sub-application from one minimal dark window.
 
 ---
 
-## Folder structure
+## Repository layout (relevant parts)
 
 ```
-merge-application/
-├── main.py              ← entry point — shows launcher, then routes to chosen app
-├── launcher.py          ← two-button mode selector window
-├── ui_shared.py         ← shared palette, fonts, and theme helpers
-├── app_record.py        ← Record mode GUI (replaces the original gui.py)
-├── app_inference.py     ← Inference mode GUI (live overlay, no CSV)
+real-time-bci-stream/
 │
-│   ── unchanged from original project ──
-├── camera_tracker.py
-├── openbci_stream.py
-├── data_recorder.py
+├── facial_mapping/              ← Live rehab feedback (Flask + browser)
+│   ├── server.py                   entry point  →  http://localhost:5050
+│   ├── app.py
+│   ├── routes/landmarks.py
+│   ├── static/
+│   └── templates/
+│
+├── merge-application/
+│   └── main.py                  ← THIS FILE — unified launcher
+│
+└── cyton_setup_instructions.md
+
+Stroke_rehab/
+├── backend/                     ← Data capture (Python / tkinter)
+│   ├── main.py                     entry point
+│   ├── gui.py
+│   ├── camera_tracker.py
+│   ├── openbci_stream.py
+│   └── data_recorder.py
+├── frontend/                    ← Browser version of data capture (optional)
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
 └── requirements.txt
 ```
 
@@ -27,39 +41,55 @@ merge-application/
 ## How to run
 
 ```bash
-cd merge-application
-pip install -r requirements.txt
+cd real-time-bci-stream/merge-application
 python main.py
 ```
 
-The launcher opens and asks you to pick a mode.
+The launcher window opens. Click either tile to start the corresponding app.
 
 ---
 
-## Modes
+## Applications
 
-### RECORD
-Identical feature set to the original `gui.py`:
-- Connect OpenBCI Cyton via COM port
-- Select eye(s), calibrate EAR thresholds
-- Manual threshold override
-- Start / Stop recording → export CSV at 250 Hz (last-known-value sync)
+### DATA CAPTURE  (`Stroke_rehab/backend/main.py`)
+- Python desktop app (tkinter)
+- Connects to OpenBCI Cyton via USB dongle
+- Tracks eye landmarks with MediaPipe
+- Records EEG + EMG + camera data → exports CSV
+- Runs in its own window; launcher stays open
 
-### INFERENCE
-Live stream window — no CSV, no recording controls:
-- Same camera EAR tracking and calibration
-- Large real-time action label (LOOKING_UP / NEUTRAL / LOOKING_DOWN)
-- Mini bar chart showing all 8 EEG/EMG channel values in µV
-- `# TODO: plug in trained model` marker in `app_inference.py` for future
-  replacement of the rule-based labels with a classifier
+### FACIAL MAPPING  (`real-time-bci-stream/facial_mapping/server.py`)
+- Flask web server on `http://localhost:5050`
+- Opens your default browser automatically
+- Live webcam feed with MediaPipe landmark overlay
+- Blacks out one side of the face and mirrors the other
+- Expression buttons (neutral / raise eyebrow / knit / look up / look down)
 
 ---
 
-## Architecture decisions
+## Dependencies
 
-| Decision | Rationale |
-|---|---|
-| Single `main.py` → `Launcher` → chosen `App` | Only one Tk root alive at a time — avoids multi-root Tkinter issues |
-| `ui_shared.py` palette + theme | Both windows share identical colours/fonts without duplication |
-| `app_record.py` / `app_inference.py` separate | Each mode has a different control set; keeping them separate avoids if/else bloat in a single GUI class |
-| Original subsystem modules untouched | Zero risk of regression in the core data pipeline |
+Install each app's requirements separately:
+
+```bash
+# Data capture
+pip install -r ../../Stroke_rehab/requirements.txt
+
+# Facial mapping
+pip install -r ../facial_mapping/requirements.txt
+```
+
+The launcher itself only requires the Python standard library + `tkinter`
+(included with all standard Python distributions).
+
+---
+
+## Notes
+
+- Both apps run as **separate subprocesses** — their event loops never conflict.
+- The launcher stays alive while an app is running so you can stop it or
+  switch to the other app without restarting.
+- The **Stop running app** button sends `SIGTERM` to the subprocess and waits
+  up to 4 seconds before force-killing it.
+- If a subprocess exits on its own (e.g. user closes the app window), the
+  launcher detects this within ~800 ms and updates the status bar.
