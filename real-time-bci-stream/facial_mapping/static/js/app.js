@@ -43,9 +43,6 @@ const State = {
   /** Locked-in calibration snapshot (normalised landmarks) */
   calibrated: null,
 
-  /** Raw landmarks from the most recent server frame */
-  latestLandmarks: null,
-
   /** Whether we are still in the calibration accumulation phase */
   isCalibrating: true,
 
@@ -199,7 +196,6 @@ function resetCalibration() {
   State.calibrated         = null;
   State.calibrationBuffer  = [];
   State.isCalibrating      = true;
-  State.latestLandmarks    = null;
 
   DOM.calibBadge.classList.remove("hidden");
   DOM.noFaceBadge.classList.add("hidden");
@@ -275,57 +271,64 @@ function stopLoop() {
  * handle the landmark response, and render the canvas.
  *
  * Called by setInterval – errors are caught so the loop continues.
+ *
+ * ── Why landmarks are frozen after calibration ──────────────────────
+ * Once calibration completes, State.calibrated holds a single averaged
+ * landmark snapshot. That snapshot is the ONLY source used for drawing
+ * from that point on.
+ *
+ * Live server responses are intentionally ignored after calibration so
+ * that real face movements (twitches, blinks, head turns) on the SOURCE
+ * side do NOT move the overlay on the mapped side. The overlay only
+ * changes when the user clicks an expression button, which modifies the
+ * mathematical offsets applied to the frozen snapshot.
+ *
+ * To update the frozen snapshot the user must click "Recalibrate".
  */
 async function pollFrame() {
   // Capture the current video frame as a JPEG data-URL
   const frameDataUrl = captureFrame();
   if (!frameDataUrl) return;
 
-  let landmarks = null;
+  // ── During calibration: keep polling the server to build the buffer ──
+  if (State.isCalibrating) {
+    try {
+      const resp = await fetch(API_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          image: frameDataUrl,
+          side:  State.sourceSide,
+        }),
+      });
 
-  try {
-    const resp = await fetch(API_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        image: frameDataUrl,
-        side:  State.sourceSide,   // always send the SOURCE side for MediaPipe to read
-      }),
-    });
+      const data = await resp.json();
 
-    const data = await resp.json();
-
-    if (data.success) {
-      landmarks = data.landmarks;
-      DOM.noFaceBadge.classList.add("hidden");
-
-      // Feed calibration buffer until we have a stable baseline
-      if (State.isCalibrating) {
-        accumulateCalibration(landmarks);
+      if (data.success) {
+        DOM.noFaceBadge.classList.add("hidden");
+        accumulateCalibration(data.landmarks);
+      } else {
+        // No face detected yet – keep showing the calibrating badge
+        DOM.noFaceBadge.classList.remove("hidden");
       }
-
-      State.latestLandmarks = landmarks;
-    } else {
-      // Server responded but no face found
-      DOM.noFaceBadge.classList.remove("hidden");
+    } catch (err) {
+      console.warn("Calibration poll error:", err);
     }
-  } catch (err) {
-    // Network / server error – silently skip this frame
-    console.warn("Frame poll error:", err);
+
+    // Render video + blackout only; no landmarks until calibration is done
+    Renderer.drawCalibrating(State.mappedSide);
+    return;
   }
 
-  // ── Render ─────────────────────────────────────────────────────
-  if (State.isCalibrating || !State.calibrated) {
-    // Show video + blackout only during calibration
-    Renderer.drawCalibrating(State.mappedSide);
-  } else {
-    Renderer.drawFrame(
-      State.latestLandmarks,
-      State.mappedSide,
-      State.expression,
-      State.calibrated,
-    );
-  }
+  // ── After calibration: stop polling the server entirely ─────────────
+  // The overlay is driven solely by State.calibrated + the active
+  // expression. Real-time face movements are deliberately ignored.
+  Renderer.drawFrame(
+    State.calibrated,   // frozen snapshot – never changes until recalibrate
+    State.mappedSide,
+    State.expression,
+    State.calibrated,
+  );
 }
 
 // ── Frame capture ────────────────────────────────────────────────────
