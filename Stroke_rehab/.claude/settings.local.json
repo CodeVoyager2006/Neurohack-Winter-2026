@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import mediapipe; print\\(mediapipe.__version__\\); print\\(dir\\(mediapipe\\)\\)\")",
+      "Bash(python:*)",
+      "Bash(taskkill /F /IM python.exe)"
+    ]
+  }
+}

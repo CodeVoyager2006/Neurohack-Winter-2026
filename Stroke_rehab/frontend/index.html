@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stroke Rehab BCI — Data Capture</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- MediaPipe Face Mesh -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header>
+  <span class="dot" id="headerDot"></span>
+  <h1>Stroke Rehab BCI — Data Capture</h1>
+</header>
+
+<main>
+  <!-- ═══════════ Left: Camera ═══════════ -->
+  <div class="panel-camera">
+    <div class="section-label">Camera Feed</div>
+    <canvas id="videoCanvas" width="480" height="360"></canvas>
+    <video id="hiddenVideo" style="display:none;" playsinline autoplay muted></video>
+    <div class="cam-status" id="camStatus">Initialising camera…</div>
+  </div>
+
+  <!-- ═══════════ Right: Controls ═══════════ -->
+  <div class="panel-controls">
+
+    <!-- OpenBCI Connection -->
+    <div class="section">
+      <h2>OpenBCI Connection</h2>
+      <div class="row">
+        <label>COM Port:</label>
+        <select id="portSelect" style="flex:1">
+          <option value="">— no port —</option>
+        </select>
+        <button class="btn-default" onclick="refreshPorts()">Refresh</button>
+      </div>
+      <div class="row">
+        <button class="btn-primary btn-full" id="btnConnect" onclick="toggleOpenBCI()">Connect</button>
+      </div>
+      <div id="bciStatus" class="note">Not connected — OpenBCI requires Chrome + Web Serial API.</div>
+    </div>
+
+    <!-- Eye Selection -->
+    <div class="section">
+      <h2>Eye Selection</h2>
+      <div class="radio-group">
+        <label><input type="radio" name="eyeSel" value="left"  onchange="onEyeChange()"> Left</label>
+        <label><input type="radio" name="eyeSel" value="right" onchange="onEyeChange()"> Right</label>
+        <label><input type="radio" name="eyeSel" value="both"  onchange="onEyeChange()" checked> Both</label>
+      </div>
+    </div>
+
+    <!-- Auto-Calibration -->
+    <div class="section">
+      <h2>Auto-Calibration</h2>
+      <button class="btn-default btn-full" id="btnCalib" onclick="startCalibration()">
+        Calibrate (3 s) — look straight ahead
+      </button>
+      <div id="calibResult">Thresholds: not calibrated</div>
+    </div>
+
+    <!-- Manual Threshold Override -->
+    <div class="section">
+      <h2>Manual Threshold Override</h2>
+      <div class="row">
+        <label>Eye:</label>
+        <select id="threshEye" style="width:70px">
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+      <div class="thresh-grid">
+        <label>Down&gt;:</label>
+        <input type="number" id="threshUpper" value="0.32" step="0.01" min="0" max="1" style="width:70px">
+        <label>Down&lt;:</label>
+        <input type="number" id="threshLower" value="0.20" step="0.01" min="0" max="1" style="width:70px">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn-default btn-full" onclick="applyThresholds()">Apply</button>
+      </div>
+    </div>
+
+    <!-- Live Readout -->
+    <div class="section">
+      <h2>Live Readout</h2>
+      <div class="readout-line" id="readoutDist">
+        Distance — L: <span class="val">—</span>  R: <span class="val">—</span>
+      </div>
+      <div class="readout-line" id="readoutAction">
+        Action — L: <span class="action-neutral">NEUTRAL</span>  R: <span class="action-neutral">NEUTRAL</span>
+      </div>
+    </div>
+
+    <!-- Recording -->
+    <div class="section">
+      <h2>Recording</h2>
+      <div class="rec-buttons">
+        <button class="btn-success" id="btnStartRec" onclick="startRecording()" style="flex:1">Start Recording</button>
+        <button class="btn-danger"  id="btnStopRec"  onclick="stopRecording()"  style="flex:1" disabled>Stop &amp; Export CSV</button>
+      </div>
+      <div class="rec-indicator" id="recIndicator">Rows: 0</div>
+    </div>
+
+  </div><!-- /panel-controls -->
+</main>
+
+<div id="statusBar">Ready.</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

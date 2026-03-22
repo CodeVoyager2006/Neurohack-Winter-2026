@@ -1,0 +1,233 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background: #181825;
+  border-bottom: 1px solid #313244;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #cba6f7;
+  letter-spacing: 0.3px;
+}
+header .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a6e3a1;
+  display: inline-block;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  padding: 12px;
+  align-items: flex-start;
+}
+
+/* ── Left panel ── */
+.panel-camera {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6c7086;
+  margin-bottom: 4px;
+}
+#videoCanvas {
+  width: 480px;
+  height: 360px;
+  background: #000;
+  border-radius: 6px;
+  border: 1px solid #313244;
+  display: block;
+}
+.cam-status {
+  font-size: 11px;
+  color: #6c7086;
+  text-align: center;
+}
+.cam-status.ok  { color: #a6e3a1; }
+.cam-status.err { color: #f38ba8; }
+
+/* ── Right panel ── */
+.panel-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+  min-width: 280px;
+  max-width: 340px;
+}
+
+/* ── Sections ── */
+.section {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.section h2 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #89b4fa;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #313244;
+  padding-bottom: 5px;
+}
+
+/* ── Form controls ── */
+.row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.row:last-child { margin-bottom: 0; }
+label { color: #a6adc8; min-width: 55px; }
+
+select,
+input[type="text"],
+input[type="number"] {
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  color: #cdd6f4;
+  padding: 4px 7px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+select:focus,
+input:focus { border-color: #89b4fa; }
+select { cursor: pointer; }
+
+button {
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid #45475a;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+  outline: none;
+}
+.btn-default { background: #313244; color: #cdd6f4; }
+.btn-default:hover { background: #45475a; }
+.btn-primary { background: #89b4fa; color: #1e1e2e; border-color: #89b4fa; }
+.btn-primary:hover { background: #74c7ec; border-color: #74c7ec; }
+.btn-success { background: #a6e3a1; color: #1e1e2e; border-color: #a6e3a1; }
+.btn-success:hover { background: #94e2d5; border-color: #94e2d5; }
+.btn-danger  { background: #f38ba8; color: #1e1e2e; border-color: #f38ba8; }
+.btn-danger:hover  { background: #eba0ac; border-color: #eba0ac; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-full { width: 100%; }
+
+/* Radio buttons */
+.radio-group { display: flex; gap: 10px; }
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: #cdd6f4;
+  min-width: unset;
+}
+input[type="radio"] { accent-color: #89b4fa; cursor: pointer; }
+
+/* Live readout */
+.readout-line {
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  padding: 3px 0;
+  color: #cdd6f4;
+}
+.readout-line .val        { color: #f9e2af; }
+.readout-line .action-up      { color: #a6e3a1; font-weight: bold; }
+.readout-line .action-down    { color: #f38ba8; font-weight: bold; }
+.readout-line .action-neutral { color: #6c7086; }
+
+/* Calib result */
+#calibResult {
+  font-size: 11px;
+  color: #6c7086;
+  margin-top: 4px;
+  font-family: 'Consolas', monospace;
+}
+#calibResult.ok { color: #a6e3a1; }
+
+/* Recording */
+.rec-buttons { display: flex; gap: 6px; }
+.rec-indicator {
+  font-size: 11px;
+  color: #6c7086;
+  margin-top: 4px;
+  font-family: 'Consolas', monospace;
+}
+.rec-indicator.active { color: #f38ba8; }
+.rec-indicator.active::before {
+  content: '● ';
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Status bar */
+#statusBar {
+  background: #181825;
+  border-top: 1px solid #313244;
+  padding: 5px 16px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  color: #a6adc8;
+  min-height: 26px;
+}
+#statusBar.error { color: #f38ba8; }
+
+/* OpenBCI note */
+.note {
+  font-size: 10px;
+  color: #6c7086;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Threshold grid */
+.thresh-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+}
+.thresh-grid label { min-width: unset; }
+
+.spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #45475a;
+  border-top-color: #89b4fa;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
