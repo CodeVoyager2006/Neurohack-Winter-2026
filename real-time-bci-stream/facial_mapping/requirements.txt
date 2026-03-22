@@ -1,25 +1,28 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# requirements.txt  –  FaceMap Facial Mapping Application
-# ──────────────────────────────────────────────────────────────────────────────
-# Python 3.13 compatible
-#
-# Install all dependencies with:
+# ------------------------------------------------------------------------------
+# requirements.txt  --  FaceMap Facial Mapping Application
+# Python 3.13 on Windows (all packages confirmed to have 3.13 wheels)
+# ------------------------------------------------------------------------------
+# Install with:
 #   pip install -r requirements.txt
 #
-# Package purpose summary
-# ─────────────────────────────────────────────────────────────────────────────
-# flask          Web framework – serves the HTML page and /api/process-frame
-# flask-cors     Adds CORS headers so browser fetch() calls work without errors
-# opencv-python  Image decoding and colour-space conversion (BGR ↔ RGB)
-# mediapipe      Google's Face Mesh model – 478 facial landmark detection
-# numpy          Array math used internally by OpenCV and MediaPipe
-# Pillow         PIL – decodes base-64 JPEG/PNG frames from the browser
-# ─────────────────────────────────────────────────────────────────────────────
- 
-flask==3.1.0
-flask-cors==5.0.0
-opencv-python==4.10.0.84
-mediapipe==0.10.18
-numpy==2.2.4
-Pillow==11.1.0
- 
+# Package          Wheel type       Python 3.13 Windows support
+# -------          ----------       ----------------------------
+# flask            py3-none-any     YES (pure Python)
+# flask-cors       py3-none-any     YES (pure Python)
+# mediapipe        py3-none-win64   YES (version-agnostic native wheel)
+# opencv-python    abi3-win64       YES (stable ABI, cp37+)
+# numpy            cp313-win64      YES (native 3.13 wheel)
+# Pillow           cp313-win64      YES (native 3.13 wheel)
+# ------------------------------------------------------------------------------
+#
+# NOTE: mediapipe uses the NEW Tasks API (not mp.solutions which was removed).
+#       On first run, landmarks.py will auto-download the face_landmarker.task
+#       model file (~29 MB) into the routes/ folder.
+# ------------------------------------------------------------------------------
+
+flask>=3.1.0
+flask-cors>=5.0.0
+mediapipe>=0.10.14
+opencv-python>=4.10.0
+numpy>=2.0.0
+Pillow>=10.0.0
