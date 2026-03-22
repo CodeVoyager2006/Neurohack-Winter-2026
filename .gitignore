@@ -1,5 +1,10 @@
 __pycache__
 
+# Trained model weights and artifacts (re-generate with train_eeg_transformer.py)
+Stroke_rehab/model/*.pt
+Stroke_rehab/model/*.pkl
+Stroke_rehab/model/*.png
+
 # pixi environments
 .pixi/*
 !.pixi/config.toml
