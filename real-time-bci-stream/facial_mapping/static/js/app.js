@@ -147,6 +147,7 @@ const DOM = {
   eegConfidence:    document.getElementById("eeg-confidence"),
   eegExpression:    document.getElementById("eeg-expression"),
   eegMatch:         document.getElementById("eeg-match"),
+  eegStatusLabel:   document.getElementById("eeg-status-label"),
 };
 
 // ── Initialisation ───────────────────────────────────────────────────
@@ -472,6 +473,12 @@ async function pollEEG() {
   }
 }
 
+const _STATUS_LABEL = {
+  neutral:      { text: "◉ Neutral",      cls: "eeg-status-label--neutral" },
+  looking_up:   { text: "↑ Looking Up",   cls: "eeg-status-label--up"      },
+  looking_down: { text: "↓ Looking Down", cls: "eeg-status-label--down"    },
+};
+
 function updateEEGPanel(data) {
   DOM.eegCsvIndex.textContent   = data.board_status === "connected" ? "CONNECTED" : "—";
   DOM.eegSession.textContent    = data.port || "—";
@@ -483,6 +490,11 @@ function updateEEGPanel(data) {
 
   DOM.eegMatch.textContent = "● LIVE";
   DOM.eegMatch.className   = "eeg-match eeg-match--ok";
+
+  // Big status label overlaid on the canvas
+  const info = _STATUS_LABEL[data.prediction] || _STATUS_LABEL.neutral;
+  DOM.eegStatusLabel.textContent = `${info.text}  ${(data.confidence * 100).toFixed(0)}%`;
+  DOM.eegStatusLabel.className   = `eeg-status-label ${info.cls}`;
 }
 
 function updateEEGPanelError(data) {
@@ -498,6 +510,10 @@ function updateEEGPanelError(data) {
 
   DOM.eegMatch.textContent = "● OFFLINE";
   DOM.eegMatch.className   = "eeg-match eeg-match--fail";
+
+  // Reset label to no-signal state
+  DOM.eegStatusLabel.textContent = "— NO SIGNAL";
+  DOM.eegStatusLabel.className   = "eeg-status-label";
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────

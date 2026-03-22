@@ -271,6 +271,47 @@ html, body {
   50%       { opacity: 0.4; }
 }
 
+/* ── Live EEG status label (bottom of canvas) ─────────── */
+.eeg-status-label {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 24px;
+  border-radius: 100px;
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  pointer-events: none;
+  /* default: no signal */
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.35);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.eeg-status-label--neutral {
+  background: rgba(0, 229, 204, 0.12);
+  border-color: #00e5cc;
+  color: #00e5cc;
+}
+
+.eeg-status-label--up {
+  background: rgba(68, 255, 136, 0.12);
+  border-color: #44ff88;
+  color: #44ff88;
+}
+
+.eeg-status-label--down {
+  background: rgba(255, 153, 68, 0.12);
+  border-color: #ff9944;
+  color: #ff9944;
+}
+
 /* ── Viewer bottom bar ────────────────────────────────── */
 .viewer__controls {
   display: flex;
