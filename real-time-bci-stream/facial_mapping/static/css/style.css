@@ -491,6 +491,51 @@ html, body {
   letter-spacing: 0.12em;
 }
 
+/* ── EEG connect row ──────────────────────────────────── */
+.eeg-connect-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.eeg-port-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.eeg-port-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.eeg-connect-btn {
+  font-size: 10px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.eeg-connect-btn.connecting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.eeg-connect-error {
+  font-size: 9px;
+  color: var(--warn);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .eeg-mode-btn {
   font-size: 10px;
   padding: 3px 8px;

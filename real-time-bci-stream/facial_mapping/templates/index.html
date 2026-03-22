@@ -126,6 +126,15 @@
           <button id="eeg-mode-btn" class="btn btn--ghost eeg-mode-btn">Auto: OFF</button>
         </div>
 
+        <!-- Board connect row -->
+        <div class="eeg-connect-row">
+          <select id="eeg-port-select" class="eeg-port-select">
+            <option value="">Auto-detect</option>
+          </select>
+          <button id="eeg-connect-btn" class="btn btn--ghost eeg-connect-btn">Connect</button>
+        </div>
+        <div id="eeg-connect-error" class="eeg-connect-error hidden"></div>
+
         <div class="eeg-panel__body" id="eeg-panel-body">
 
           <div class="eeg-section-label">Board signal</div>

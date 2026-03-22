@@ -216,6 +216,7 @@ class _CytonManager:
                 p.device for p in serial.tools.list_ports.comports()
             ]
 
+            permission_denied = False
             for p in ports_to_try:
                 params = BrainFlowInputParams()
                 params.serial_port = p
@@ -230,14 +231,24 @@ class _CytonManager:
                     self.port    = p
                     print(f"[EEG] Cyton connected on {p}  |  EXG rows: {exg_ch}")
                     return True
-                except Exception:
+                except Exception as exc:
+                    exc_str = str(exc).lower()
+                    if "permission" in exc_str or "access" in exc_str or "unable_to_open_port" in exc_str:
+                        permission_denied = True
+                        print(f"[EEG] Permission denied on {p} — {exc}")
                     try:
                         board.release_session()
                     except Exception:
                         pass
 
             self.status = "disconnected"
-            self.error  = "No Cyton board found — check USB dongle and drivers"
+            if permission_denied:
+                self.error = (
+                    f"Access denied on COM port — re-run the server as Administrator: "
+                    f"right-click your terminal → 'Run as administrator', then restart server.py"
+                )
+            else:
+                self.error = "No Cyton board found — check USB dongle and drivers"
             print(f"[EEG] {self.error}")
             return False
 
@@ -389,10 +400,27 @@ def eeg_status():
     })
 
 
+@eeg_predict_bp.route("/api/eeg-ports", methods=["GET"])
+def eeg_ports():
+    """Return a list of available serial ports for the UI dropdown."""
+    try:
+        import serial.tools.list_ports
+        ports = [
+            {"device": p.device, "description": p.description}
+            for p in serial.tools.list_ports.comports()
+        ]
+    except Exception as exc:
+        ports = []
+    return jsonify({"ports": ports})
+
+
 @eeg_predict_bp.route("/api/eeg-connect", methods=["POST"])
 def eeg_connect():
-    """Attempt to (re)connect to the Cyton board."""
-    ok = _board.connect()
+    """Attempt to (re)connect to the Cyton board, optionally on a specific port."""
+    from flask import request
+    body = request.get_json(silent=True) or {}
+    port = body.get("port") or None   # None → auto-detect all ports
+    ok = _board.connect(port=port)
     return jsonify({
         "success":      ok,
         "board_status": _board.status,

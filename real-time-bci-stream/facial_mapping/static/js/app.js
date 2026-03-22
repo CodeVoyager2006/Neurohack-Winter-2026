@@ -56,6 +56,8 @@
 // ── Configuration ────────────────────────────────────────────────────
 const API_URL            = "/api/process-frame";
 const EEG_API_URL        = "/api/eeg-predict";
+const EEG_PORTS_URL      = "/api/eeg-ports";
+const EEG_CONNECT_URL    = "/api/eeg-connect";
 const FRAME_INTERVAL_MS  = 80;    // ~12 fps polling rate to server
 const CALIBRATION_FRAMES = 10;    // frames averaged before going live
 const JPEG_QUALITY       = 0.6;   // trade-off between speed and accuracy
@@ -122,6 +124,9 @@ const State = {
 
   /** Interval handle for the EEG polling loop. */
   eegLoopHandle: null,
+
+  /** True once the board has successfully connected at least once this session. */
+  eegEverConnected: false,
 };
 
 // ── DOM References ───────────────────────────────────────────────────
@@ -139,6 +144,9 @@ const DOM = {
   exprButtons:      document.querySelectorAll(".expr-btn"),
   // EEG panel
   eegModeBtn:       document.getElementById("eeg-mode-btn"),
+  eegPortSelect:    document.getElementById("eeg-port-select"),
+  eegConnectBtn:    document.getElementById("eeg-connect-btn"),
+  eegConnectError:  document.getElementById("eeg-connect-error"),
   eegCsvIndex:      document.getElementById("eeg-csv-index"),
   eegSession:       document.getElementById("eeg-session"),
   eegWindow:        document.getElementById("eeg-window"),
@@ -167,6 +175,9 @@ function initEventListeners() {
   // EEG auto mode toggle
   DOM.eegModeBtn.addEventListener("click", toggleEEGMode);
 
+  // EEG board connect button
+  DOM.eegConnectBtn.addEventListener("click", connectBoard);
+
   // Recalibrate (same side)
   DOM.recalibrateBtn.addEventListener("click", resetCalibration);
 
@@ -176,6 +187,71 @@ function initEventListeners() {
     stopEEGLoop();
     showSetupPanel();
   });
+
+  // Populate port dropdown on load
+  loadPortList();
+}
+
+// ── Board connection ─────────────────────────────────────────────────
+
+async function loadPortList() {
+  try {
+    const resp  = await fetch(EEG_PORTS_URL);
+    const data  = await resp.json();
+    const ports = data.ports || [];
+
+    // Clear existing options except "Auto-detect"
+    while (DOM.eegPortSelect.options.length > 1) {
+      DOM.eegPortSelect.remove(1);
+    }
+
+    ports.forEach(p => {
+      const opt   = document.createElement("option");
+      opt.value   = p.device;
+      // Highlight FTDI (OpenBCI dongle) ports
+      const isFtdi = p.description.toLowerCase().includes("usb serial") ||
+                     p.description.toLowerCase().includes("ftdi");
+      opt.textContent = isFtdi ? `★ ${p.device}` : p.device;
+      if (isFtdi && DOM.eegPortSelect.value === "") {
+        opt.selected = true;   // pre-select likely Cyton port
+      }
+      DOM.eegPortSelect.appendChild(opt);
+    });
+  } catch (_) { /* silently ignore if server not up yet */ }
+}
+
+async function connectBoard() {
+  DOM.eegConnectBtn.textContent = "Connecting…";
+  DOM.eegConnectBtn.classList.add("connecting");
+  DOM.eegConnectError.classList.add("hidden");
+
+  const port = DOM.eegPortSelect.value || null;  // null → server auto-detects
+
+  try {
+    const resp = await fetch(EEG_CONNECT_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ port }),
+    });
+    const data = await resp.json();
+
+    if (data.success) {
+      DOM.eegConnectBtn.textContent = "Connected";
+      DOM.eegConnectError.classList.add("hidden");
+      // Auto-enable EEG mode so projections start moving immediately
+      if (State.eegMode !== "auto") toggleEEGMode();
+    } else {
+      DOM.eegConnectBtn.textContent = "Retry";
+      DOM.eegConnectError.textContent = data.error || "Connection failed";
+      DOM.eegConnectError.classList.remove("hidden");
+    }
+  } catch (err) {
+    DOM.eegConnectBtn.textContent = "Retry";
+    DOM.eegConnectError.textContent = "Server unreachable";
+    DOM.eegConnectError.classList.remove("hidden");
+  } finally {
+    DOM.eegConnectBtn.classList.remove("connecting");
+  }
 }
 
 // ── Panel switching ──────────────────────────────────────────────────
@@ -480,7 +556,7 @@ const _STATUS_LABEL = {
 };
 
 function updateEEGPanel(data) {
-  DOM.eegCsvIndex.textContent   = data.board_status === "connected" ? "CONNECTED" : "—";
+  DOM.eegCsvIndex.textContent   = "CONNECTED";
   DOM.eegSession.textContent    = data.port || "—";
   DOM.eegWindow.textContent     = data.samples ? `${data.samples} samples` : "—";
   DOM.eegTrueLabel.textContent  = data.raw;
@@ -491,6 +567,15 @@ function updateEEGPanel(data) {
   DOM.eegMatch.textContent = "● LIVE";
   DOM.eegMatch.className   = "eeg-match eeg-match--ok";
 
+  DOM.eegConnectBtn.textContent = "Connected";
+  DOM.eegConnectError.classList.add("hidden");
+
+  // Auto-enable EEG mode the first time a live signal arrives
+  if (!State.eegEverConnected) {
+    State.eegEverConnected = true;
+    if (State.eegMode !== "auto") toggleEEGMode();
+  }
+
   // Big status label overlaid on the canvas
   const info = _STATUS_LABEL[data.prediction] || _STATUS_LABEL.neutral;
   DOM.eegStatusLabel.textContent = `${info.text}  ${(data.confidence * 100).toFixed(0)}%`;
@@ -499,6 +584,7 @@ function updateEEGPanel(data) {
 
 function updateEEGPanelError(data) {
   const status = data.board_status || "disconnected";
+  const errMsg = data.error || "";
 
   DOM.eegCsvIndex.textContent   = status.toUpperCase();
   DOM.eegSession.textContent    = "—";
@@ -510,6 +596,16 @@ function updateEEGPanelError(data) {
 
   DOM.eegMatch.textContent = "● OFFLINE";
   DOM.eegMatch.className   = "eeg-match eeg-match--fail";
+
+  // Show error hint (e.g. "Access denied — run as Administrator")
+  if (errMsg) {
+    DOM.eegConnectError.textContent = errMsg;
+    DOM.eegConnectError.classList.remove("hidden");
+  }
+
+  if (DOM.eegConnectBtn.textContent === "Connected") {
+    DOM.eegConnectBtn.textContent = "Reconnect";
+  }
 
   // Reset label to no-signal state
   DOM.eegStatusLabel.textContent = "— NO SIGNAL";

@@ -1,204 +1,243 @@
-# 🧠 Welcome to the Winter 2026 SURGE Neurotech Hackathon!
+# NeuroRehab — EEG-Driven Facial Projection for Stroke Recovery
 
-Welcome to the **SURGE Neurotech Hackathon 2026**, where you'll get hands-on experience developing Brain-Computer Interfaces (BCIs) and analyzing neural data. Over the course of this weekend, you'll work in teams to prototype applications using EEG data. 
+A real-time Brain-Computer Interface that detects voluntary eye-movement intent from EEG signals and projects it onto a patient's stroke-affected facial side using a live webcam overlay.
 
-<details>
-<summary>Table of Contents</summary>
-
-## Table of Contents
-
-- [🧠 Welcome to the Winter 2026 SURGE Neurotech Hackathon!](#-welcome-to-the-winter-2026-surge-neurotech-hackathon)
-  - [Table of Contents](#table-of-contents)
-- [General Information:](#general-information)
-  - [Support \& Collaboration](#support--collaboration)
-  - [Hackathon Schedule](#hackathon-schedule)
-  - [Rules:](#rules)
-- [🏆 Challenge Streams](#-challenge-streams)
-  - [**1️⃣ Brain-Controlled Applications (Real-Time BCI)**](#1️⃣-brain-controlled-applications-real-time-bci)
-    - [Real-Time BCI Deliverables](#real-time-bci-deliverables)
-  - [**2️⃣ AI \& Machine Learning (Offline EEG Data Analysis)**](#2️⃣-ai--machine-learning-offline-eeg-data-analysis)
-    - [Offline EEG Data/ML Deliverables](#offline-eeg-dataml-deliverables)
-  - [**3️⃣ Hardware Hacking (EEG Hardware \& Embedded Systems)**](#3️⃣-hardware-hacking-eeg-hardware--embedded-systems)
-    - [Hardware Hacking Deliverables](#hardware-hacking-deliverables)
-- [📩 Submission Information](#-submission-information)
-    - [Submission Process](#submission-process)
-- [📌 Getting Started](#-getting-started)
-    - [**1️⃣ Clone this Repository**](#1️⃣-clone-this-repository)
-    - [**2️⃣ Install Dependencies**](#2️⃣-install-dependencies)
-    - [**3️⃣ Choose Your Challenge Stream and Get Hacking!**](#3️⃣-choose-your-challenge-stream-and-get-hacking)
-- [Don't know where to start? Check this out!](#dont-know-where-to-start-check-this-out)
-- [Repository Table of Contents](#repository-table-of-contents)
-  - [📂 Neurohack-Winter-2026](#-neurohack-winter-2026)
-    - [📂 getting-setup – Instructions on how to set up Python](#-getting-setup--instructions-on-how-to-set-up-python)
-    - [📂 real-time-bci-stream – Resources \& starter code for real-time EEG applications](#-real-time-bci-stream--resources--starter-code-for-real-time-eeg-applications)
-    - [📂 offline-analysis-stream – Resources \& starter code for EEG data analysis](#-offline-analysis-stream--resources--starter-code-for-eeg-data-analysis)
-    - [📂 resources – Learning materials and references](#-resources--learning-materials-and-references)
-</details>
-
----
-# General Information:
-
-## Support & Collaboration
-- Join the [SURGE Discord server](https://discord.gg/WKTet49nE5) to ask questions, share ideas, and collaborate with other participants!
-- Refer back to the [introduction presentation](https://docs.google.com/presentation/d/1Kv9ZSb0_6BqbbZlZWzYRzQ__WZipsEUCZKcd4CUvxyY/edit?usp=sharing)
-
-## Hackathon Schedule
-
-- **Day 1 (Friday 6:00pm-8:00pm):** Introduction to BCI, EEG, and Team Formation
-- **Day 2 (Saturday 9:00am-5:00pm):** Hacking!
-- **Day 3 (Sunday 9:00am-4:00pm):** Project wrap-up & submission, team presentations, and judging!
-  - Submission Deadline: Sunday @ 1:45 PM
-  - Presentations: 2:00 PM - 3:30 PM
-
-## Rules:
-1. You are free to use any hardware or software tools you like, but we recommend using the resources provided in this repository.
-2. You may work in teams of up to 4 people. Individual submissions are also allowed.
-3. All work must be done during the hackathon period (Friday to Sunday).
-4. You must submit your project by the deadline to be eligible for judging.
-5. All team members must be present and speak during the teams' presentation to be eligible for a prize.
-6. You are allowed to - even encouraged to use AI tools (e.g., ChatGPT, GitHub Copilot) to assist with coding, brainstorming, and problem-solving. **However, it is your responsibility to ensure that you understand and can explain all of your work!**
-7. Have fun and be creative!
+Built at the **SURGE Neurotech Hackathon 2026** (Real-Time BCI stream).
 
 ---
 
-# 🏆 Challenge Streams
-We have **three challenge tracks** you can choose from:
+## What It Does
 
-## **1️⃣ Brain-Controlled Applications (Real-Time BCI)**
-**🎯 Challenge & Goal:** Develop an application where EEG signals **control an interaction or interface** in real time. Use real-time EEG to build a brain-controlled game, assistive tool, interactive experience, or whatever you brainstorm!
+Stroke patients often lose motor control on one side of the face. The healthy side still works, but the affected side cannot mirror it. This system:
 
-**Example Ideas:**
-   - A **Mind-controlled game**
-   - A **An EEG-controlled communication device**
-   - A **mind-controlled music device**
+1. **Reads live EEG** from an OpenBCI Cyton board (4 frontal/temporal channels)
+2. **Classifies the patient's intent** — neutral, looking up, or looking down — using a trained EEG Transformer model running at ~3 Hz
+3. **Projects the movement** onto the patient's stroke-affected side via a webcam overlay, creating a real-time visual feedback loop that reinforces neuropathway recovery through neuroplasticity
 
-### Real-Time BCI Deliverables
+The affected side overlay is **position-locked** — it ignores all uncontrolled muscle activity from the healthy side and only moves when the EEG model fires a confident prediction.
 
-- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
-  -  Problem Statement & Motivation  
-  - System Design & Implementation 
-  - A live Demonstration (or a pre-recorded demo if real-time is not possible)  
-  - Results & Interpretation (system performance, user interaction)
-  - Challenges & Future Work
-- **Code Repository** (GitHub or Zip file) – Should include: 
-  - Your code, presentation and instructions for running the project (a readme file)
-
-
-## **2️⃣ AI & Machine Learning (Offline EEG Data Analysis)**
-**🎯 Challenge & Goal:** Analyze pre-recorded EEG data to extract insights, perform statistics, classify brain signals/states, or detect anomalies.
-
-**BCI Dataset:** For this stream we have provided three datasets of EEG recordings from participants subjected to various experimental conditions designed to elicit specific neural responses. For more information on the provided dataset, please refer to the [dataset description](./offline-analysis-stream/dataset_description.md).
-- **You may find and use a different, publicly available dataset for your analysis**. However, if you choose to use another dataset, volunteers may not be able to provide as much support.
-
-### Offline EEG Data/ML Deliverables
-
-- **Project Presentation** (12 minutes max.) - see the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
-  - Problem Statement & Motivation  
-  - What you did with the data (preprocessing, analysis, modeling) 
-  - Results & Interpretation (accuracy, feature importance, visualization of findings, etc.)  
-  - Challenges & Future Work  
-- **Report (Recommended)** – A Jupyter Notebook or PDF report summarizing:
-  - You could even make a report and use it for your presentation!
-  - Your data analysis process (where did you start, what did you try, what worked) and key insights; visualizations, results, and interpretation of findings.
-- **Code Repository** (GitHub or Zip file) – Should include:  
-  - Your code/analyses, presentation and instructions for running the project (a readme file)
-
-## **3️⃣ Hardware Hacking (EEG Hardware & Embedded Systems)**
-**🎯 Challenge & Goal:** Design, build, or modify EEG hardware to improve signal acquisition, create a novel sensing device, or interface custom hardware with a BCI pipeline.
-
-**Example Ideas:**
-   - A **Novel visual paradigm**
-   - A **custom EEG electrode array or headset**
-   - A **hardware-accelerated signal processing pipeline**
-   - A **low-cost, DIY EEG amplifier or biosignal interface**
-
-### Hardware Hacking Deliverables
-
-- **Project Presentation** (12 minutes max.) - See the [rubric for details.](./resources/Judging_rubrics.pdf) A general template for your presentation should include:
-  - Problem Statement & Motivation
-  - Hardware Design & Implementation (schematics, components, build process)
-  - A live Demonstration (or a pre-recorded demo)
-  - Results & Interpretation (signal quality, performance benchmarks)
-  - Challenges & Future Work
-- **Code Repository** (GitHub or Zip file) – Should include:
-  - Your code, schematics/CAD files, and a README with build and usage instructions
+```
+  Patient thinks "look up"
+         │
+         ▼
+  EEG signal detected (AF7/AF8/TP9/TP10)
+         │
+         ▼
+  Transformer model → "looking_up" (87% confidence)
+         │
+         ▼
+  Webcam overlay raises the eyebrow/eye landmarks
+  on the affected side in real time
+```
 
 ---
 
-# 📩 Submission Information
+## System Architecture
 
-- **Submission Deadline: Sunday, 1:00 PM**
-- **Judging Format:** A **short presentation** followed by a **5-minute Q&A** session from the judges.
-  - Order of team presentations will be decided at random.
-- **Judging Criteria:** Projects will be evaluated based on the [rubrics provided for each challenge stream.](./resources/Judging_rubrics.pdf)
-- **Prizes:** Top teams from each stream will bragging rights, a great addition to your CV, and sweet SURGE swag prizes!
-
-### Submission Process
-- **How to Submit:**  
-  - Upload your presentation, code, reports, and any other relevant files to your Github repository.
-    - If files are too large, or you don't have a Github repository, you can submit a zip file.
-    - Ensure it includes a *README* explaining about (and how to run/use) your project. 
-  - **[Submit through the submission form](https://docs.google.com/forms/d/e/1FAIpQLSc65U8UJwx7-sMt4GFWles26xFzohy9mJT58iCGx3GzYFaYJA/viewform?usp=header)**
-- **NOTE:** If you submit multiple times, only your most recent submission made before the submission deadline (1:00 pm on Sunday) will be considered. Submissions received after the deadline will not be accepted.  
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        HARDWARE LAYER                            │
+│                                                                  │
+│   OpenBCI Cyton (8-ch)          USB Webcam                       │
+│   ch5→AF7  ch6→AF8              MediaPipe FaceLandmarker         │
+│   ch7→TP9  ch8→TP10             478-point face mesh              │
+└────────────────┬─────────────────────────┬───────────────────────┘
+                 │                         │
+                 ▼                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                       FLASK SERVER  :5050                        │
+│                                                                  │
+│   /api/eeg-predict          /api/process-frame                   │
+│   ─────────────────         ───────────────────                  │
+│   BrainFlow stream          MediaPipe landmark                   │
+│   64-sample window          extraction per frame                 │
+│   13 features/channel       (eyebrow, eye, iris,                 │
+│   EEG Transformer           mouth corners)                       │
+│   3-window smoothing                                             │
+└────────────────┬─────────────────────────┬───────────────────────┘
+                 │                         │
+                 ▼                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                     BROWSER UI  (app.js)                         │
+│                                                                  │
+│   EEG poll every 300ms → setExpression()                         │
+│   Camera poll every 80ms → calibration + head tracking           │
+│   Canvas overlay: position-locked to calibration snapshot        │
+│   Expression offsets applied on top (raise/lower landmarks)      │
+└──────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-# 📌 Getting Started
-### **1️⃣ Clone this Repository**
+## Repository Structure
+
+```
+Neurohack-Winter-2026/
+│
+├── Stroke_rehab/                   # EEG model — training & inference
+│   ├── train_eeg_transformer.py    # Full training pipeline (run this first)
+│   ├── preprocess_jaiden.py        # Raw CSV → windowed feature dataset
+│   ├── model/                      # Saved model artifacts (committed)
+│   │   ├── eeg_transformer.pt      # Trained PyTorch weights
+│   │   ├── scaler.pkl              # Fitted StandardScaler
+│   │   └── model_config.pkl        # Architecture + class config
+│   ├── backend/                    # Data capture app (Tkinter GUI)
+│   │   ├── main.py                 # Entry point
+│   │   ├── openbci_stream.py       # BrainFlow Cyton streaming
+│   │   ├── camera_tracker.py       # MediaPipe eye tracking
+│   │   └── data_recorder.py        # Multi-stream CSV recorder
+│   └── README.md                   # Detailed model documentation
+│
+├── real-time-bci-stream/
+│   └── facial_mapping/             # Live demo application
+│       ├── server.py               # Flask entry point  ← START HERE
+│       ├── routes/
+│       │   ├── eeg_predict.py      # Live Cyton inference endpoint
+│       │   └── landmarks.py        # MediaPipe frame endpoint
+│       ├── static/
+│       │   ├── js/app.js           # Main UI controller
+│       │   ├── js/renderer.js      # Canvas drawing
+│       │   ├── js/expressions.js   # Expression offset maths
+│       │   └── css/style.css
+│       ├── templates/index.html
+│       └── requirements.txt        # All Python dependencies
+│
+├── resources/
+│   ├── jaiden_master.csv           # Primary training dataset (windowed)
+│   ├── accurate_jaiden.csv         # Raw EEG capture from target subject
+│   └── final_bci_master.csv        # Earlier multi-session dataset
+│
+└── getting-setup/                  # Environment setup guides
+```
+
+---
+
+## Hardware Requirements
+
+| Component | Spec | Notes |
+|---|---|---|
+| OpenBCI Cyton board | 8-channel, 250 Hz | Channels 5–8 used for EEG |
+| USB RF dongle | FTDI-based (VID 0403:6015) | Ships with Cyton |
+| EEG electrodes | Channels 5–8: AF7, AF8, TP9, TP10 | 10-20 system positions |
+| Webcam | Any USB/built-in (720p+) | For face overlay |
+| OS | Windows 10/11 | COM port required for Cyton |
+| Python | 3.10 – 3.13 | 3.13 confirmed working |
+
+### Electrode Placement
+
+```
+  Cyton channel → electrode position:
+  ch5 → AF7   (left frontal, above left eyebrow)
+  ch6 → AF8   (right frontal, above right eyebrow)
+  ch7 → TP9   (behind left ear)
+  ch8 → TP10  (behind right ear)
+```
+
+---
+
+## Quick Start
+
+### 1. Clone and install dependencies
+
 ```bash
-git clone https://github.com/SURGE-NeuroTech-Club/Neurohack-Winter-2026.git
+git clone https://github.com/CodeVoyager2006/Neurohack-Winter-2026.git
 cd Neurohack-Winter-2026
+
+cd real-time-bci-stream/facial_mapping
+pip install -r requirements.txt
 ```
 
-### **2️⃣ Install Dependencies**
-Navigate to [resources/python_setup.md](./resources/python_setup.md) for instructions on how to setup the provided miniforge `Brainhack` environment.
+### 2. Run the server (as Administrator on Windows)
 
-Alternatively, If you already have Python 3.12 installed, you will need to ensure you have the following packages installed if you want to run the provided scripts.
+The Cyton USB dongle requires elevated permissions on Windows.
+
+**Right-click your terminal → "Run as administrator"**, then:
+
 ```bash
-pip install scipy jupyterlab mne brainflow pyserial matplotlib
+cd real-time-bci-stream/facial_mapping
+python server.py
 ```
 
-For Unity/Pygame-based projects, additional installations may be required.
+You should see:
+```
+[EEG] Model loaded  |  classes: ['neutral', 'looking_up', 'looking_down']
+[EEG] Cyton connected on COM7  |  EXG rows: [1, 2, 3, 4, 5, 6, 7, 8]
+ * Running on http://127.0.0.1:5050
+```
 
-### **3️⃣ Choose Your Challenge Stream and Get Hacking!**
-Navigate to either:
-- `real-time-bci/` for the interactive applications stream.
-- `offline-analysis/` for the EEG data processing and machine learning stream.
+### 3. Open the application
+
+Navigate to `http://127.0.0.1:5050` in your browser.
+
+```
+  Step 1 — Choose affected side (left or right)
+  Step 2 — Hold still during calibration (~1 second)
+  Step 3 — EEG auto mode enables automatically on first signal
+  Step 4 — Patient performs eye movements → overlay responds
+```
+
+### 4. If the board isn't detected automatically
+
+Use the **port dropdown + Connect button** in the EEG panel on the right side of the interface. COM ports with USB Serial (FTDI) are pre-starred for easy identification.
 
 ---
-# Don't know where to start? Check this out!
-Dr. Aaron Newman produced a free online textbook that is a **fantastic place to start** learning about python, EEG signal processing, and brain-computer interfaces. It uses **MNE-Python** — the same library used in the provided example scripts — and covers preprocessing, artifact removal, ERPs, frequency analysis, and more!
-- Full textbook: https://neuraldatascience.io/
-  - Jump straight to python introduction: https://neuraldatascience.io/python/introduction/
-  - Or to the EEG section: https://neuraldatascience.io/eeg/introduction/
+
+## Model Details
+
+### Classes
+| Label | Meaning | Frontend key |
+|---|---|---|
+| `neutral` | Resting gaze | `neutral` |
+| `looking_up` | Upward voluntary gaze | `lookup` |
+| `looking_down` | Downward voluntary gaze | `lookdown` |
+
+### Feature extraction (per 300ms window, per channel)
+- **5 bandpowers** (Welch): theta (4–8 Hz), alpha (8–13 Hz), beta (13–30 Hz), gamma (30–80 Hz), EMG (80–200 Hz)
+- **8 statistics**: mean, std, RMS, MAV, peak-to-peak, kurtosis, skewness, zero-crossing rate
+
+Total input: 4 channels × 13 features = **52 features**
+
+### Architecture
+Channel-wise Transformer: each EEG channel is projected to a 64-dim token, then 4 Transformer encoder layers (8 attention heads) model inter-channel relationships. Global average pool → FC → softmax(3).
+
+- Parameters: ~85,000
+- Inference latency: < 5 ms on CPU
+- Training macro-F1: **0.75** (5-fold stratified CV on Jaiden dataset)
+
+### Prediction smoothing
+3-window majority vote deque + 0.40 confidence floor fallback to neutral.
+
+### Retraining the model
+
+If you capture new data with the recorder (`Stroke_rehab/backend/main.py`):
+
+```bash
+cd Stroke_rehab
+
+# Preprocess raw CSV → windowed features
+python preprocess_jaiden.py
+
+# Retrain with cross-validation + save deployment model
+python train_eeg_transformer.py --final
+```
+
 ---
 
-# Repository Table of Contents
+## Troubleshooting
 
-## 📂 [Neurohack-Winter-2026](./)
-- 📜 [README.md](README.md) – Main documentation
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Access is denied` on COM port | Not running as admin | Right-click terminal → Run as administrator |
+| Board shows disconnected in UI | Board plugged in after server started | Use Connect button in EEG panel |
+| Model not loaded on new machine | `.pt`/`.pkl` files were gitignored | `git pull` — model files are now committed |
+| `UNABLE_TO_OPEN_PORT_ERROR` | Another app holds the port | Close OpenBCI GUI or other serial apps |
+| Overlay doesn't move | Auto mode not enabled | Enabled automatically on first EEG signal; or click "Auto: ON" |
+| `ModuleNotFoundError: brainflow` | Missing dependency | `pip install -r requirements.txt` |
+| No face detected badge | Poor lighting / camera angle | Ensure face is centred and well-lit |
+| COM port not listed | FTDI driver not installed | Install from ftdichip.com or use OpenBCI drivers |
 
-### 📂 [getting-setup](getting-setup/) – Instructions on how to set up Python
-- 📄 [python_setup.md](getting-setup/python_setup.md) – Python setup instructions
-- 🐍 [brainhack_env.yaml](getting-setup/brainhack_env.yaml) – Anaconda environment file (Python 3.13)
-- 🐍 [compatibility_brainhack_env.yaml](getting-setup/compatibility_brainhack_env.yaml) – Anaconda environment file (Python 3.10)
+---
 
-### 📂 [real-time-bci-stream](real-time-bci-stream/) – Resources & starter code for real-time EEG applications
-- 📄 [cyton_setup_instructions.md](real-time-bci-stream/cyton_setup_instructions.md) – Cyton board setup guide
-- 📂 [sample-data](real-time-bci-stream/sample-data/) – Example EEG data
-- 📂 [example-scripts](real-time-bci-stream/example-scripts/) – Starter code for real-time BCI
-  - [brainflow_stream.py](real-time-bci-stream/example-scripts/brainflow_stream.py)
-  - [Realtime_Stream_Example_Notebook.ipynb](real-time-bci-stream/example-scripts/Realtime_Stream_Example_Notebook.ipynb)
+## Team
 
-### 📂 [offline-analysis-stream](offline-analysis-stream/) – Resources & starter code for EEG data analysis
-- 📄 [dataset_description.md](offline-analysis-stream/dataset_description.md) – Dataset information
-- 📂 [example-scripts](offline-analysis-stream/example-scripts/) – Starter scripts for EEG analysis
-  - [Offline_Stream_Example_Notebook.ipynb](offline-analysis-stream/example-scripts/Offline_Stream_Example_Notebook.ipynb)
-- 📂 [sample-data](offline-analysis-stream/sample-data/) – Provided EEG datasets
-  - Flicker, FlickerOddball, Oddball subfolders with .fif files
-
-### 📂 [resources](resources/) – Learning materials and references
-- 📄 [bci_basics.md](resources/bci_basics.md) – BCI concepts introduction
-- 📄 [useful_links.md](resources/useful_links.md) – Reference materials and links
-- 📄 [Judging_rubrics.pdf](resources/Judging_rubrics.pdf) – Deliverables outline & judging rubrics
-- 📂 [images](resources/images/) – Images and figures
+Built at SURGE Neurotech Hackathon 2026 — Real-Time BCI stream.
