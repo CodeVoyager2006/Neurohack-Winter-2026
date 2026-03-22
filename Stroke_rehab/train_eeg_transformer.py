@@ -33,6 +33,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 
 # -- Scikit-learn ----------------------------------------------------------------
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import (
     classification_report, confusion_matrix, f1_score, ConfusionMatrixDisplay
 )
@@ -378,51 +379,115 @@ def run_fold(fold_name, df_train, df_val, df_test, scaler=None):
 # 6.  CROSS-VALIDATION LOOP
 # -------------------------------------------------------------------------------
 
-def session_leave_one_out_cv(df):
-    """3-fold CV: each session acts as held-out test set once."""
+def stratified_kfold_cv(df, n_splits=5):
+    """
+    5-fold stratified cross-validation across all sessions combined.
+
+    Why this replaces session-LOO:
+    - Session-LOO trained on only 1 session (~12k windows, 1 dominant blink type)
+    - Each session has biased label distribution (LeftEye=left_blinks, RightEye=right_blinks)
+    - This caused near-zero blink recall because the model never saw balanced examples
+    - Stratified k-fold ensures every fold has the same class ratio as the full dataset
+    - Train size per fold: ~80% of 38k = 30k windows with all blink types represented
+    """
+    X, y = build_feature_matrix(df)
     cv_results = []
     all_preds, all_targets = [], []
 
-    for i, test_session in enumerate(SESSIONS):
-        train_sessions = [s for s in SESSIONS if s != test_session]
-        # Use one of the train sessions as validation
-        val_session   = train_sessions[i % len(train_sessions)]
-        train_sessions_pure = [s for s in train_sessions if s != val_session]
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=SEED)
 
-        df_train = df[df["session"].isin(train_sessions_pure)]
-        df_val   = df[df["session"] == val_session]
-        df_test  = df[df["session"] == test_session]
+    for fold_idx, (train_val_idx, test_idx) in enumerate(skf.split(X, y)):
+        # Further split train_val into 80% train / 20% val (stratified)
+        X_tv, y_tv = X[train_val_idx], y[train_val_idx]
+        inner_skf   = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
+        tr_idx, va_idx = next(inner_skf.split(X_tv, y_tv))
 
-        scaler, model, best_val_f1, test_f1, preds, targets, history = run_fold(
-            test_session, df_train, df_val, df_test
+        X_tr,  y_tr  = X_tv[tr_idx],  y_tv[tr_idx]
+        X_val, y_val = X_tv[va_idx],  y_tv[va_idx]
+        X_te,  y_te  = X[test_idx],   y[test_idx]
+
+        print(f"\n{'-'*60}")
+        print(f"  FOLD {fold_idx+1}/{n_splits}")
+        print(f"  Train: {len(y_tr):,}  |  Val: {len(y_val):,}  |  Test: {len(y_te):,}")
+        print(f"  Train class dist: { {CLASS_NAMES[i]: int((y_tr==i).sum()) for i in range(3)} }")
+
+        # Normalise
+        N_tr,  C, F = X_tr.shape
+        scaler = StandardScaler()
+        scaler.fit(X_tr.reshape(N_tr, -1))
+        X_tr  = scaler.transform(X_tr.reshape(N_tr,  -1)).reshape(N_tr,  C, F)
+        X_val = scaler.transform(X_val.reshape(len(y_val), -1)).reshape(len(y_val), C, F)
+        X_te  = scaler.transform(X_te.reshape(len(y_te),  -1)).reshape(len(y_te),  C, F)
+
+        class_weights = compute_class_weights(y_tr, n_classes=3)
+        criterion     = nn.CrossEntropyLoss(weight=class_weights)
+
+        model = EEGTransformer(n_channels=C, n_features=F, n_classes=3).to(DEVICE)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        scheduler = CosineAnnealingLR(optimizer, T_max=MAX_EPOCHS, eta_min=1e-6)
+
+        train_loader, val_loader = make_loaders(X_tr, y_tr, X_val, y_val)
+
+        best_f1, best_epoch, best_state = 0.0, 0, None
+        history = {"train_loss": [], "val_loss": [], "val_f1": []}
+        patience_counter = 0
+
+        for epoch in range(1, MAX_EPOCHS + 1):
+            tr_loss, tr_acc = train_one_epoch(model, train_loader, criterion, optimizer)
+            va_loss, va_acc, va_f1 = evaluate(model, val_loader, criterion)
+            scheduler.step()
+
+            history["train_loss"].append(tr_loss)
+            history["val_loss"].append(va_loss)
+            history["val_f1"].append(va_f1)
+
+            if va_f1 > best_f1:
+                best_f1    = va_f1
+                best_epoch = epoch
+                best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if epoch % 10 == 0 or patience_counter == 0:
+                print(f"  Epoch {epoch:3d}  tr_loss={tr_loss:.4f}  va_loss={va_loss:.4f}"
+                      f"  va_f1={va_f1:.4f}  {'*best*' if patience_counter == 0 else ''}")
+
+            if patience_counter >= PATIENCE:
+                print(f"  Early stopping at epoch {epoch} (best epoch={best_epoch})")
+                break
+
+        model.load_state_dict(best_state)
+        te_loss, te_acc, te_f1, preds, targets = evaluate(
+            model,
+            DataLoader(TensorDataset(torch.tensor(X_te, dtype=torch.float32),
+                                     torch.tensor(y_te, dtype=torch.int64)),
+                       batch_size=BATCH_SIZE),
+            criterion, return_preds=True,
         )
+
+        print(f"\n  [Test] loss={te_loss:.4f}  acc={te_acc:.4f}  macro-F1={te_f1:.4f}")
+        print(classification_report(targets, preds, target_names=CLASS_NAMES, zero_division=0))
 
         all_preds.extend(preds)
         all_targets.extend(targets)
-        cv_results.append({
-            "fold": test_session,
-            "val_f1":  best_val_f1,
-            "test_f1": test_f1,
-            "history": history,
-        })
+        cv_results.append({"fold": fold_idx+1, "val_f1": best_f1, "test_f1": te_f1, "history": history})
 
     print("\n" + "="*60)
-    print("  CROSS-VALIDATION SUMMARY")
+    print("  CROSS-VALIDATION SUMMARY  (5-fold stratified)")
     print("="*60)
     for r in cv_results:
-        print(f"  {r['fold']:>12s}  val_f1={r['val_f1']:.4f}  test_f1={r['test_f1']:.4f}")
+        print(f"  Fold {r['fold']}  val_f1={r['val_f1']:.4f}  test_f1={r['test_f1']:.4f}")
     mean_f1 = np.mean([r["test_f1"] for r in cv_results])
-    print(f"  {'MEAN':>12s}                test_f1={mean_f1:.4f}")
+    print(f"  MEAN                      test_f1={mean_f1:.4f}")
 
-    # Overall confusion matrix
     cm = confusion_matrix(all_targets, all_preds)
     print(f"\n  Overall Classification Report:")
-    print(classification_report(all_targets, all_preds,
-                                target_names=CLASS_NAMES, zero_division=0))
+    print(classification_report(all_targets, all_preds, target_names=CLASS_NAMES, zero_division=0))
 
     fig, ax = plt.subplots(figsize=(6, 5))
     ConfusionMatrixDisplay(cm, display_labels=CLASS_NAMES).plot(ax=ax, colorbar=False)
-    ax.set_title("CV Confusion Matrix (all folds)")
+    ax.set_title(f"CV Confusion Matrix ({n_splits}-fold stratified)")
     fig.tight_layout()
     fig.savefig(os.path.join(MODEL_DIR, "cv_confusion_matrix.png"), dpi=120)
     plt.close(fig)
@@ -604,7 +669,7 @@ def main():
             print("[MNE] Not installed — skipping sanity check. pip install mne")
 
     if not args.skip_cv:
-        cv_results = session_leave_one_out_cv(df)
+        cv_results = stratified_kfold_cv(df)
 
     if args.final or args.skip_cv:
         model, scaler = train_final_model(df)
