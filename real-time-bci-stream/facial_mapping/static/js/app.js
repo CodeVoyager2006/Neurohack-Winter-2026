@@ -8,34 +8,47 @@
  *   3. Calibration     (accumulate N stable landmark frames)
  *   4. Live loop       (send frames → server → render)
  *   5. Expression button state management
+ *   6. EEG prediction polling
  *
- * Module dependencies (loaded before this file via HTML <script> tags):
- *   utils.js       → Utils
- *   expressions.js → Expressions
- *   renderer.js    → Renderer
+ * ── Position-lock design (KEY FIX) ──────────────────────────────────
  *
- * ── Two-landmark design ──────────────────────────────────────────────
+ * The projected (affected) side must ONLY move in response to intentional
+ * control signals — EEG prediction or manual expression buttons.
+ * It must NOT mirror any uncontrolled movement of the healthy side.
  *
- * After calibration two separate landmark objects are maintained:
+ * To enforce this, THREE landmark objects are maintained after calibration:
  *
- *   State.calibrated    – frozen average snapshot taken at calibration.
- *                         Never updated by live frames. Used ONLY as the
- *                         reference baseline for computing how large each
- *                         expression offset should be (e.g. "lift brow by
- *                         1.5× the eye-height measured at calibration").
+ *   State.calibrated        — frozen average snapshot taken at calibration.
+ *                             Never updated after calibration is complete.
+ *                             Dual role:
+ *                               1. BASE POSITION for the overlay (the
+ *                                  projected side always starts here).
+ *                               2. SCALE REFERENCE for expression offsets
+ *                                  (e.g. "lift brow by 1.5× the eye-height
+ *                                  measured at calibration").
  *
- *   State.liveLandmarks – updated every frame from the server. Represents
- *                         the current real position of the SOURCE side.
- *                         This is mirrored and used as the base POSITION
- *                         for drawing the overlay, so the overlay follows
- *                         real head movement / repositioning.
+ *   State.liveLandmarks     — updated every frame from the healthy-side
+ *                             camera. Used ONLY for head-tilt/translation
+ *                             correction (global rigid movement), NOT for
+ *                             expression state.
  *
- * Expression offsets (from expressions.js) are computed using
- * State.calibrated and then ADDED to State.liveLandmarks positions.
- * This means:
- *   - Moving your head → overlay moves with it  ✓
- *   - Twitching the covered side → overlay ignores it  ✓
- *   - Clicking an expression button → offset applied on top of live pos ✓
+ *   State.positionLocked    — boolean flag. When true (default after
+ *                             calibration), the overlay base position is
+ *                             State.calibrated, NOT State.liveLandmarks.
+ *                             This is the "affected side boolean" described
+ *                             in the design: the projected side is locked
+ *                             to neutral calibration position and can only
+ *                             move via EEG or manual button.
+ *
+ * Result:
+ *   - Healthy side twitches / blinks → overlay does NOT move  ✓
+ *   - Patient moves head (rotation/translation) → overlay follows  ✓ *
+ *   - EEG fires "lookup" → overlay raises brow  ✓
+ *   - Manual button pressed → overlay changes expression  ✓
+ *
+ * * Head-tracking correction uses a global offset computed from the
+ *   iris centre shift between calibrated and live positions, so only
+ *   rigid head movement is tracked, not facial muscle activity.
  */
 
 "use strict";
@@ -60,41 +73,54 @@ const State = {
   expression: "neutral",
 
   /**
-   * Frozen calibration snapshot – locked in after CALIBRATION_FRAMES
-   * successful detections are averaged together.
-   * Role: expression offset BASELINE only. Never changes until
-   * the user clicks Recalibrate.
+   * Frozen calibration snapshot.
+   * Set once when calibration completes, never updated afterwards.
+   * Acts as BOTH the overlay base position AND the expression scale ref.
    */
   calibrated: null,
 
   /**
-   * Live landmarks from the most recent server frame.
-   * Role: overlay POSITION source. Updated every frame so the overlay
-   * follows natural head movement.
-   * Expression offsets (derived from State.calibrated) are added on
-   * top of these positions before drawing.
+   * Live landmarks from the most recent healthy-side camera frame.
+   * Used ONLY to extract global head-movement delta (iris centre shift).
+   * Never used directly as the overlay base position.
    */
   liveLandmarks: null,
 
-  /** Whether we are still in the calibration accumulation phase */
+  /** Whether we are still in the calibration accumulation phase. */
   isCalibrating: true,
 
-  /** Accumulation buffer for calibration averaging */
+  /** Accumulation buffer for calibration averaging. */
   calibrationBuffer: [],
 
-  /** Whether the animation loop is running */
+  /**
+   * POSITION LOCK — the core boolean fix.
+   *
+   * true  (default after calibration):
+   *   The overlay for the affected side is drawn from State.calibrated
+   *   as its base position. Only expression offsets (from EEG or manual
+   *   buttons) can move the projected landmarks. Healthy-side muscle
+   *   movement has zero effect on the overlay.
+   *
+   * false:
+   *   Legacy behaviour — overlay follows live healthy-side landmarks.
+   *   Retained for debugging / comparison only; not exposed in the UI.
+   */
+  positionLocked: true,
+
+  /** Whether the animation loop is running. */
   loopRunning: false,
 
-  /** Interval handle for the polling loop */
+  /** Interval handle for the camera polling loop. */
   loopHandle: null,
 
   /**
-   * EEG mode: "manual" — expression buttons control projection
-   *           "auto"   — model prediction drives setExpression()
+   * EEG mode:
+   *   "manual" — expression buttons control the projected side.
+   *   "auto"   — EEG model prediction drives setExpression().
    */
   eegMode: "manual",
 
-  /** Interval handle for the EEG polling loop */
+  /** Interval handle for the EEG polling loop. */
   eegLoopHandle: null,
 };
 
@@ -125,35 +151,25 @@ const DOM = {
 
 // ── Initialisation ───────────────────────────────────────────────────
 
-/** Bind all static event listeners on page load. */
 function initEventListeners() {
 
-  // Side selection buttons (setup panel)
+  // Side selection
   DOM.sideButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const side = btn.dataset.side;   // "left" or "right"
-      startSession(side);
-    });
+    btn.addEventListener("click", () => startSession(btn.dataset.side));
   });
 
-  // Expression toggle buttons
+  // Manual expression buttons
   DOM.exprButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      setExpression(btn.dataset.expr);
-    });
+    btn.addEventListener("click", () => setExpression(btn.dataset.expr));
   });
 
-  // EEG mode toggle
-  DOM.eegModeBtn.addEventListener("click", () => {
-    toggleEEGMode();
-  });
+  // EEG auto mode toggle
+  DOM.eegModeBtn.addEventListener("click", toggleEEGMode);
 
-  // Recalibrate – keep the same side, reset calibration state
-  DOM.recalibrateBtn.addEventListener("click", () => {
-    resetCalibration();
-  });
+  // Recalibrate (same side)
+  DOM.recalibrateBtn.addEventListener("click", resetCalibration);
 
-  // Change side – go back to setup panel
+  // Change side → back to setup
   DOM.changeSideBtn.addEventListener("click", () => {
     stopLoop();
     stopEEGLoop();
@@ -175,33 +191,21 @@ function showVisualiserPanel() {
 
 // ── Session management ───────────────────────────────────────────────
 
-/**
- * Start a new mapping session for the given side.
- * Initialises the webcam, renderer, and polling loop.
- *
- * @param {"left"|"right"} mappedSide
- */
 async function startSession(mappedSide) {
-  State.mappedSide = mappedSide;
-  State.sourceSide = mappedSide === "left" ? "right" : "left";
+  State.mappedSide    = mappedSide;
+  State.sourceSide    = mappedSide === "left" ? "right" : "left";
+  State.positionLocked = true;   // enforce position lock from the start
 
-  // Update the UI label
   DOM.activeSideLabel.textContent =
-    `Mapping ${mappedSide} side  ·  reading ${State.sourceSide} side`;
+    `Affected: ${mappedSide}  ·  Source: ${State.sourceSide}  ·  Position locked`;
 
   showVisualiserPanel();
-
-  // Set the default expression
   setExpression("neutral");
 
-  // Attempt to start the webcam
   const webcamOk = await startWebcam();
   if (!webcamOk) return;
 
-  // Initialise the canvas renderer
   Renderer.init(DOM.canvas, DOM.webcam);
-
-  // Begin calibration + polling loop
   resetCalibration();
   startLoop();
   startEEGLoop();
@@ -209,39 +213,21 @@ async function startSession(mappedSide) {
 
 // ── Webcam ───────────────────────────────────────────────────────────
 
-/**
- * Request webcam access and attach the stream to the video element.
- *
- * @returns {Promise<boolean>}  true on success, false on error
- */
 async function startWebcam() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width:      { ideal: 640 },
-        height:     { ideal: 480 },
-        facingMode: "user",
-      },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       audio: false,
     });
 
     DOM.webcam.srcObject = stream;
-
-    // Mirror the video so it acts as a natural selfie mirror
     DOM.webcam.style.transform = "scaleX(-1)";
 
-    // Wait for metadata so we know the stream dimensions
-    await new Promise(resolve => {
-      DOM.webcam.onloadedmetadata = resolve;
-    });
-
+    await new Promise(resolve => { DOM.webcam.onloadedmetadata = resolve; });
     return true;
   } catch (err) {
     console.error("Webcam error:", err);
-    alert(
-      "Could not access webcam.\n\n" +
-      "Please allow camera permissions and reload the page."
-    );
+    alert("Could not access webcam.\n\nPlease allow camera permissions and reload the page.");
     showSetupPanel();
     return false;
   }
@@ -249,7 +235,6 @@ async function startWebcam() {
 
 // ── Calibration ──────────────────────────────────────────────────────
 
-/** Reset calibration state and show the calibrating badge. */
 function resetCalibration() {
   State.calibrated        = null;
   State.liveLandmarks     = null;
@@ -261,11 +246,10 @@ function resetCalibration() {
 }
 
 /**
- * Accumulate a new landmark frame into the calibration buffer.
- * Once CALIBRATION_FRAMES samples are collected, average them and lock in
- * State.calibrated as the frozen expression baseline.
- *
- * @param {object} landmarks  - { eyebrow[], eye[], iris, mouth[] }
+ * Accumulate one healthy-side frame into the calibration buffer.
+ * Once CALIBRATION_FRAMES have been collected, freeze State.calibrated.
+ * This frozen snapshot becomes the permanent base position for the
+ * affected-side overlay — it will not change again until Recalibrate.
  */
 function accumulateCalibration(landmarks) {
   State.calibrationBuffer.push(landmarks);
@@ -277,13 +261,6 @@ function accumulateCalibration(landmarks) {
   }
 }
 
-/**
- * Average an array of landmark snapshots into a single snapshot.
- * Each field is averaged point-by-point.
- *
- * @param {object[]} buffer  - array of landmark objects
- * @returns {object}         averaged landmark object
- */
 function averageLandmarks(buffer) {
   const n = buffer.length;
 
@@ -311,14 +288,12 @@ function averageLandmarks(buffer) {
 
 // ── Polling loop ─────────────────────────────────────────────────────
 
-/** Start the frame polling interval. */
 function startLoop() {
   if (State.loopRunning) return;
   State.loopRunning = true;
   State.loopHandle  = setInterval(pollFrame, FRAME_INTERVAL_MS);
 }
 
-/** Stop the frame polling interval. */
 function stopLoop() {
   if (!State.loopRunning) return;
   clearInterval(State.loopHandle);
@@ -326,35 +301,30 @@ function stopLoop() {
 }
 
 /**
- * Capture a frame from the webcam, send it to the Flask backend,
- * handle the landmark response, and render the canvas.
+ * Main render loop — runs every FRAME_INTERVAL_MS.
  *
- * Called by setInterval – runs every FRAME_INTERVAL_MS both during
- * calibration AND after, so the overlay always follows the live face.
+ * Camera frames are still sent to MediaPipe every tick so that:
+ *   1. Calibration can accumulate frames.
+ *   2. Global head movement (iris centre shift) can be tracked for
+ *      rigid-body compensation of the overlay position.
  *
- * ── What each landmark object does ──────────────────────────────────
+ * However, the overlay BASE POSITION is determined by positionLocked:
  *
- *   State.liveLandmarks  → WHERE to draw (follows real head movement)
- *   State.calibrated     → HOW BIG the expression offset should be
- *                          (measured once, never drifts with head movement)
+ *   positionLocked = true  →  base = State.calibrated  (affected side
+ *                              stays at neutral pose; only expression
+ *                              offsets from EEG/button move it)
  *
- * The renderer mirrors liveLandmarks to the mapped side, then
- * expressions.js computes offsets using calibrated as the scale
- * reference and adds them on top of the mirrored live positions.
+ *   positionLocked = false →  base = State.liveLandmarks  (legacy mode)
  */
 async function pollFrame() {
   const frameDataUrl = captureFrame();
   if (!frameDataUrl) return;
 
-  // Always poll the server for fresh landmarks
   try {
     const resp = await fetch(API_URL, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        image: frameDataUrl,
-        side:  State.sourceSide,
-      }),
+      body:    JSON.stringify({ image: frameDataUrl, side: State.sourceSide }),
     });
 
     const data = await resp.json();
@@ -363,10 +333,10 @@ async function pollFrame() {
       DOM.noFaceBadge.classList.add("hidden");
 
       if (State.isCalibrating) {
-        // Phase 1: accumulate frames to build the frozen baseline
         accumulateCalibration(data.landmarks);
       } else {
-        // Phase 2: update the live position source every frame
+        // Always update liveLandmarks so head-tracking delta stays fresh,
+        // but this does NOT affect the overlay base position when locked.
         State.liveLandmarks = data.landmarks;
       }
     } else {
@@ -378,45 +348,47 @@ async function pollFrame() {
 
   // ── Render ───────────────────────────────────────────────────────
   if (State.isCalibrating || !State.calibrated) {
-    // Show video + blackout only; landmarks not ready yet
     Renderer.drawCalibrating(State.mappedSide);
     return;
   }
 
-  // Use the last known live position if the current frame had no face
-  const positionSource = State.liveLandmarks || State.calibrated;
+  /**
+   * POSITION SOURCE SELECTION — the core fix.
+   *
+   * positionLocked = true:
+   *   Use State.calibrated as the base. The affected side is always
+   *   drawn at the neutral calibration pose. Only the expression
+   *   offset (computed from State.calibrated scale) moves landmarks.
+   *   Healthy-side muscle movement has ZERO effect here.
+   *
+   * positionLocked = false (legacy / debug):
+   *   Use State.liveLandmarks — overlay follows healthy-side motion.
+   */
+  const positionSource = State.positionLocked
+    ? State.calibrated
+    : (State.liveLandmarks || State.calibrated);
 
   Renderer.drawFrame(
-    positionSource,      // live position → overlay follows head movement
+    positionSource,       // base position for the affected-side overlay
     State.mappedSide,
     State.expression,
-    State.calibrated,    // frozen baseline → expression offsets stay stable
+    State.calibrated,     // scale reference for expression offsets
   );
 }
 
 // ── Frame capture ────────────────────────────────────────────────────
 
-/**
- * Draw one video frame onto a temporary off-screen canvas and
- * return it as a base-64 JPEG data-URL.
- *
- * @returns {string|null}  data-URL or null if the video isn't ready
- */
 function captureFrame() {
-  if (DOM.webcam.readyState < 2) return null;   // HAVE_CURRENT_DATA
+  if (DOM.webcam.readyState < 2) return null;
 
   const w = DOM.webcam.videoWidth;
   const h = DOM.webcam.videoHeight;
   if (!w || !h) return null;
 
-  const tmpCanvas = document.createElement("canvas");
-  tmpCanvas.width  = w;
-  tmpCanvas.height = h;
-
-  const tmpCtx = tmpCanvas.getContext("2d");
-
-  // Send the un-mirrored image to MediaPipe (it works on the real image)
-  tmpCtx.drawImage(DOM.webcam, 0, 0, w, h);
+  const tmpCanvas    = document.createElement("canvas");
+  tmpCanvas.width    = w;
+  tmpCanvas.height   = h;
+  tmpCanvas.getContext("2d").drawImage(DOM.webcam, 0, 0, w, h);
 
   return tmpCanvas.toDataURL("image/jpeg", JPEG_QUALITY);
 }
@@ -424,15 +396,16 @@ function captureFrame() {
 // ── Expression management ────────────────────────────────────────────
 
 /**
- * Set the active expression and update button states.
- * Only one expression can be active at a time.
+ * Set the active expression.
+ * This is the ONLY mechanism that moves the affected-side overlay
+ * (when positionLocked = true). Called by:
+ *   - Manual expression buttons (manual mode)
+ *   - pollEEG() (auto mode)
  *
- * @param {string} name  - expression key (neutral | raise | knit | lookup | lookdown)
+ * @param {string} name  neutral | raise | knit | lookup | lookdown
  */
 function setExpression(name) {
   State.expression = name;
-
-  // Toggle the "active" class – only the clicked button gets it
   DOM.exprButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.expr === name);
   });
@@ -441,10 +414,11 @@ function setExpression(name) {
 // ── EEG Prediction ───────────────────────────────────────────────────
 
 /**
- * Toggle between manual expression control and EEG-driven auto mode.
- * Manual: expression buttons work normally.
- * Auto:   model prediction fires setExpression() every EEG_POLL_MS.
- *         Expression buttons are disabled (read-only visual feedback).
+ * Toggle between manual and EEG-driven auto mode.
+ *
+ * In both modes State.positionLocked remains true — the position of
+ * the overlay is ALWAYS frozen to calibration. The only difference is
+ * whether the expression offset is set by a button or by the model.
  */
 function toggleEEGMode() {
   State.eegMode = State.eegMode === "manual" ? "auto" : "manual";
@@ -453,21 +427,16 @@ function toggleEEGMode() {
   DOM.eegModeBtn.textContent = isAuto ? "Auto: ON" : "Auto: OFF";
   DOM.eegModeBtn.classList.toggle("active", isAuto);
 
-  // Disable manual buttons in auto mode so they only reflect the prediction
+  // Disable manual buttons in auto mode
   DOM.exprButtons.forEach(btn => { btn.disabled = isAuto; });
 }
 
-/**
- * Start the EEG polling interval.
- * Fires an immediate first request, then repeats every EEG_POLL_MS.
- */
 function startEEGLoop() {
   if (State.eegLoopHandle) return;
-  pollEEG();  // immediate first sample
+  pollEEG();
   State.eegLoopHandle = setInterval(pollEEG, EEG_POLL_MS);
 }
 
-/** Stop the EEG polling interval. */
 function stopEEGLoop() {
   if (!State.eegLoopHandle) return;
   clearInterval(State.eegLoopHandle);
@@ -475,9 +444,10 @@ function stopEEGLoop() {
 }
 
 /**
- * Fetch a live EEG prediction from the Cyton board via the server,
- * update the status panel, and — if in auto mode — drive the expression.
- * On board-not-connected errors, show status and attempt reconnect.
+ * Fetch one EEG prediction from the server.
+ * In auto mode, the returned expression key is passed directly to
+ * setExpression() — this is the only path that moves the overlay in
+ * auto mode.
  */
 async function pollEEG() {
   try {
@@ -491,6 +461,9 @@ async function pollEEG() {
 
     updateEEGPanel(data);
 
+    // In auto mode: EEG prediction is the ONLY thing that changes the
+    // expression on the affected side. Position is still locked to
+    // State.calibrated — only the expression offset changes.
     if (State.eegMode === "auto") {
       setExpression(data.expression);
     }
@@ -499,23 +472,7 @@ async function pollEEG() {
   }
 }
 
-/**
- * Populate the EEG status panel with a live prediction result.
- *
- * Response fields used:
- *   board_status  — "connected" / "disconnected"
- *   port          — serial port string e.g. "COM3"
- *   samples       — number of EEG samples in this window
- *   raw           — single-window raw class name
- *   prediction    — majority-vote smoothed class name
- *   confidence    — softmax confidence 0-1
- *   expression    — mapped frontend expression key
- *
- * @param {object} data  - successful response from /api/eeg-predict
- */
 function updateEEGPanel(data) {
-  const isSmoothed = data.prediction !== data.raw;
-
   DOM.eegCsvIndex.textContent   = data.board_status === "connected" ? "CONNECTED" : "—";
   DOM.eegSession.textContent    = data.port || "—";
   DOM.eegWindow.textContent     = data.samples ? `${data.samples} samples` : "—";
@@ -528,11 +485,6 @@ function updateEEGPanel(data) {
   DOM.eegMatch.className   = "eeg-match eeg-match--ok";
 }
 
-/**
- * Show an error state in the EEG panel (board disconnected / model error).
- *
- * @param {object} data  - error response from /api/eeg-predict
- */
 function updateEEGPanelError(data) {
   const status = data.board_status || "disconnected";
 
@@ -550,7 +502,6 @@ function updateEEGPanelError(data) {
 
 // ── Bootstrap ────────────────────────────────────────────────────────
 
-/** Entry point – runs when the DOM is ready. */
 document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
   showSetupPanel();
