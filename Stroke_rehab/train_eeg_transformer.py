@@ -43,7 +43,7 @@ from sklearn.metrics import (
 # -------------------------------------------------------------------------------
 
 ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(ROOT, "resources", "final_bci_master.csv")
+DATA_PATH = os.path.join(ROOT, "resources", "jaiden_master.csv")
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -58,8 +58,8 @@ STAT_FEATURES = ["mean", "std", "rms", "mav", "peak2peak", "kurtosis", "skewness
 # TP9_theta, TP9_alpha, ..., TP9_skewness, TP9_zcr  (13 features × 4 channels = 52)
 PER_CHANNEL_FEATS = [f"bp_{b}" for b in BP_BANDS] + STAT_FEATURES  # 5 + 8 = 13
 
-CLASS_NAMES  = ["rest", "left_blink", "right_blink"]
-SESSIONS     = ["LeftEye", "RightEye", "MixedBlink"]
+CLASS_NAMES  = ["neutral", "looking_up", "looking_down"]
+SESSIONS     = ["LeftEye", "RightEye", "MixedBlink", "Jaiden"]
 
 # Training hyper-parameters
 D_MODEL      = 64

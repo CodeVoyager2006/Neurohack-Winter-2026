@@ -46,7 +46,7 @@ const EEG_API_URL        = "/api/eeg-predict";
 const FRAME_INTERVAL_MS  = 80;    // ~12 fps polling rate to server
 const CALIBRATION_FRAMES = 10;    // frames averaged before going live
 const JPEG_QUALITY       = 0.6;   // trade-off between speed and accuracy
-const EEG_POLL_MS        = 2000;  // new EEG sample every 2 seconds
+const EEG_POLL_MS        = 300;   // new EEG sample every 300 ms (~3 Hz)
 
 // ── Application State ────────────────────────────────────────────────
 const State = {
@@ -475,8 +475,9 @@ function stopEEGLoop() {
 }
 
 /**
- * Fetch a new EEG prediction from the server (random CSV row → model),
+ * Fetch a live EEG prediction from the Cyton board via the server,
  * update the status panel, and — if in auto mode — drive the expression.
+ * On board-not-connected errors, show status and attempt reconnect.
  */
 async function pollEEG() {
   try {
@@ -484,7 +485,7 @@ async function pollEEG() {
     const data = await resp.json();
 
     if (!data.success) {
-      console.warn("EEG predict error:", data.error);
+      updateEEGPanelError(data);
       return;
     }
 
@@ -499,23 +500,52 @@ async function pollEEG() {
 }
 
 /**
- * Populate the EEG status panel with the latest prediction result.
+ * Populate the EEG status panel with a live prediction result.
  *
- * @param {object} data  - response from /api/eeg-predict
+ * Response fields used:
+ *   board_status  — "connected" / "disconnected"
+ *   port          — serial port string e.g. "COM3"
+ *   samples       — number of EEG samples in this window
+ *   raw           — single-window raw class name
+ *   prediction    — majority-vote smoothed class name
+ *   confidence    — softmax confidence 0-1
+ *   expression    — mapped frontend expression key
+ *
+ * @param {object} data  - successful response from /api/eeg-predict
  */
 function updateEEGPanel(data) {
-  const matched = data.prediction === data.true_label;
+  const isSmoothed = data.prediction !== data.raw;
 
-  DOM.eegCsvIndex.textContent   = `#${data.csv_index}`;
-  DOM.eegSession.textContent    = data.session;
-  DOM.eegWindow.textContent     = `${data.window_start_s.toFixed(2)}s – ${data.window_end_s.toFixed(2)}s`;
-  DOM.eegTrueLabel.textContent  = data.true_label;
+  DOM.eegCsvIndex.textContent   = data.board_status === "connected" ? "CONNECTED" : "—";
+  DOM.eegSession.textContent    = data.port || "—";
+  DOM.eegWindow.textContent     = data.samples ? `${data.samples} samples` : "—";
+  DOM.eegTrueLabel.textContent  = data.raw;
   DOM.eegPrediction.textContent = data.prediction;
   DOM.eegConfidence.textContent = `${(data.confidence * 100).toFixed(1)}%`;
   DOM.eegExpression.textContent = data.expression;
 
-  DOM.eegMatch.textContent  = matched ? "MATCH" : "MISMATCH";
-  DOM.eegMatch.className    = `eeg-match ${matched ? "eeg-match--ok" : "eeg-match--fail"}`;
+  DOM.eegMatch.textContent = "● LIVE";
+  DOM.eegMatch.className   = "eeg-match eeg-match--ok";
+}
+
+/**
+ * Show an error state in the EEG panel (board disconnected / model error).
+ *
+ * @param {object} data  - error response from /api/eeg-predict
+ */
+function updateEEGPanelError(data) {
+  const status = data.board_status || "disconnected";
+
+  DOM.eegCsvIndex.textContent   = status.toUpperCase();
+  DOM.eegSession.textContent    = "—";
+  DOM.eegWindow.textContent     = "—";
+  DOM.eegTrueLabel.textContent  = "—";
+  DOM.eegPrediction.textContent = "—";
+  DOM.eegConfidence.textContent = "—";
+  DOM.eegExpression.textContent = "—";
+
+  DOM.eegMatch.textContent = "● OFFLINE";
+  DOM.eegMatch.className   = "eeg-match eeg-match--fail";
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────
