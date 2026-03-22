@@ -10,24 +10,41 @@
  *   5. Expression button state management
  *
  * Module dependencies (loaded before this file via HTML <script> tags):
- *   utils.js → Utils
+ *   utils.js       → Utils
  *   expressions.js → Expressions
- *   renderer.js → Renderer
+ *   renderer.js    → Renderer
  *
- * ── Calibration strategy ────────────────────────────────────────────
- * We accumulate CALIBRATION_FRAMES consecutive successful detections
- * and average them to form a stable baseline. If the face moves away
- * the frame is simply skipped; the calibrated snapshot is not replaced
- * until the user explicitly clicks "Recalibrate".
+ * ── Two-landmark design ──────────────────────────────────────────────
+ *
+ * After calibration two separate landmark objects are maintained:
+ *
+ *   State.calibrated    – frozen average snapshot taken at calibration.
+ *                         Never updated by live frames. Used ONLY as the
+ *                         reference baseline for computing how large each
+ *                         expression offset should be (e.g. "lift brow by
+ *                         1.5× the eye-height measured at calibration").
+ *
+ *   State.liveLandmarks – updated every frame from the server. Represents
+ *                         the current real position of the SOURCE side.
+ *                         This is mirrored and used as the base POSITION
+ *                         for drawing the overlay, so the overlay follows
+ *                         real head movement / repositioning.
+ *
+ * Expression offsets (from expressions.js) are computed using
+ * State.calibrated and then ADDED to State.liveLandmarks positions.
+ * This means:
+ *   - Moving your head → overlay moves with it  ✓
+ *   - Twitching the covered side → overlay ignores it  ✓
+ *   - Clicking an expression button → offset applied on top of live pos ✓
  */
 
 "use strict";
 
 // ── Configuration ────────────────────────────────────────────────────
-const API_URL           = "/api/process-frame";
-const FRAME_INTERVAL_MS = 80;       // ~12 fps polling rate to server
-const CALIBRATION_FRAMES = 10;      // frames averaged before going live
-const JPEG_QUALITY       = 0.6;     // trade-off between speed and accuracy
+const API_URL            = "/api/process-frame";
+const FRAME_INTERVAL_MS  = 80;    // ~12 fps polling rate to server
+const CALIBRATION_FRAMES = 10;    // frames averaged before going live
+const JPEG_QUALITY       = 0.6;   // trade-off between speed and accuracy
 
 // ── Application State ────────────────────────────────────────────────
 const State = {
@@ -40,8 +57,22 @@ const State = {
   /** Currently active expression name */
   expression: "neutral",
 
-  /** Locked-in calibration snapshot (normalised landmarks) */
+  /**
+   * Frozen calibration snapshot – locked in after CALIBRATION_FRAMES
+   * successful detections are averaged together.
+   * Role: expression offset BASELINE only. Never changes until
+   * the user clicks Recalibrate.
+   */
   calibrated: null,
+
+  /**
+   * Live landmarks from the most recent server frame.
+   * Role: overlay POSITION source. Updated every frame so the overlay
+   * follows natural head movement.
+   * Expression offsets (derived from State.calibrated) are added on
+   * top of these positions before drawing.
+   */
+  liveLandmarks: null,
 
   /** Whether we are still in the calibration accumulation phase */
   isCalibrating: true,
@@ -152,7 +183,6 @@ async function startSession(mappedSide) {
 
 /**
  * Request webcam access and attach the stream to the video element.
- * Uses rear camera on mobile if available (facingMode: "user" for selfie).
  *
  * @returns {Promise<boolean>}  true on success, false on error
  */
@@ -193,9 +223,10 @@ async function startWebcam() {
 
 /** Reset calibration state and show the calibrating badge. */
 function resetCalibration() {
-  State.calibrated         = null;
-  State.calibrationBuffer  = [];
-  State.isCalibrating      = true;
+  State.calibrated        = null;
+  State.liveLandmarks     = null;
+  State.calibrationBuffer = [];
+  State.isCalibrating     = true;
 
   DOM.calibBadge.classList.remove("hidden");
   DOM.noFaceBadge.classList.add("hidden");
@@ -203,7 +234,8 @@ function resetCalibration() {
 
 /**
  * Accumulate a new landmark frame into the calibration buffer.
- * Once CALIBRATION_FRAMES samples are collected, average them and lock in.
+ * Once CALIBRATION_FRAMES samples are collected, average them and lock in
+ * State.calibrated as the frozen expression baseline.
  *
  * @param {object} landmarks  - { eyebrow[], eye[], iris, mouth[] }
  */
@@ -228,7 +260,6 @@ function averageLandmarks(buffer) {
   const n = buffer.length;
 
   function avgPoints(arrays) {
-    // arrays is an array of arrays of {x,y}
     return arrays[0].map((_, i) => ({
       x: arrays.reduce((s, arr) => s + arr[i].x, 0) / n,
       y: arrays.reduce((s, arr) => s + arr[i].y, 0) / n,
@@ -270,64 +301,68 @@ function stopLoop() {
  * Capture a frame from the webcam, send it to the Flask backend,
  * handle the landmark response, and render the canvas.
  *
- * Called by setInterval – errors are caught so the loop continues.
+ * Called by setInterval – runs every FRAME_INTERVAL_MS both during
+ * calibration AND after, so the overlay always follows the live face.
  *
- * ── Why landmarks are frozen after calibration ──────────────────────
- * Once calibration completes, State.calibrated holds a single averaged
- * landmark snapshot. That snapshot is the ONLY source used for drawing
- * from that point on.
+ * ── What each landmark object does ──────────────────────────────────
  *
- * Live server responses are intentionally ignored after calibration so
- * that real face movements (twitches, blinks, head turns) on the SOURCE
- * side do NOT move the overlay on the mapped side. The overlay only
- * changes when the user clicks an expression button, which modifies the
- * mathematical offsets applied to the frozen snapshot.
+ *   State.liveLandmarks  → WHERE to draw (follows real head movement)
+ *   State.calibrated     → HOW BIG the expression offset should be
+ *                          (measured once, never drifts with head movement)
  *
- * To update the frozen snapshot the user must click "Recalibrate".
+ * The renderer mirrors liveLandmarks to the mapped side, then
+ * expressions.js computes offsets using calibrated as the scale
+ * reference and adds them on top of the mirrored live positions.
  */
 async function pollFrame() {
-  // Capture the current video frame as a JPEG data-URL
   const frameDataUrl = captureFrame();
   if (!frameDataUrl) return;
 
-  // ── During calibration: keep polling the server to build the buffer ──
-  if (State.isCalibrating) {
-    try {
-      const resp = await fetch(API_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          image: frameDataUrl,
-          side:  State.sourceSide,
-        }),
-      });
+  // Always poll the server for fresh landmarks
+  try {
+    const resp = await fetch(API_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        image: frameDataUrl,
+        side:  State.sourceSide,
+      }),
+    });
 
-      const data = await resp.json();
+    const data = await resp.json();
 
-      if (data.success) {
-        DOM.noFaceBadge.classList.add("hidden");
+    if (data.success) {
+      DOM.noFaceBadge.classList.add("hidden");
+
+      if (State.isCalibrating) {
+        // Phase 1: accumulate frames to build the frozen baseline
         accumulateCalibration(data.landmarks);
       } else {
-        // No face detected yet – keep showing the calibrating badge
-        DOM.noFaceBadge.classList.remove("hidden");
+        // Phase 2: update the live position source every frame
+        State.liveLandmarks = data.landmarks;
       }
-    } catch (err) {
-      console.warn("Calibration poll error:", err);
+    } else {
+      DOM.noFaceBadge.classList.remove("hidden");
     }
+  } catch (err) {
+    console.warn("Frame poll error:", err);
+  }
 
-    // Render video + blackout only; no landmarks until calibration is done
+  // ── Render ───────────────────────────────────────────────────────
+  if (State.isCalibrating || !State.calibrated) {
+    // Show video + blackout only; landmarks not ready yet
     Renderer.drawCalibrating(State.mappedSide);
     return;
   }
 
-  // ── After calibration: stop polling the server entirely ─────────────
-  // The overlay is driven solely by State.calibrated + the active
-  // expression. Real-time face movements are deliberately ignored.
+  // Use the last known live position if the current frame had no face
+  const positionSource = State.liveLandmarks || State.calibrated;
+
   Renderer.drawFrame(
-    State.calibrated,   // frozen snapshot – never changes until recalibrate
+    positionSource,      // live position → overlay follows head movement
     State.mappedSide,
     State.expression,
-    State.calibrated,
+    State.calibrated,    // frozen baseline → expression offsets stay stable
   );
 }
 
@@ -352,7 +387,7 @@ function captureFrame() {
 
   const tmpCtx = tmpCanvas.getContext("2d");
 
-  // We send the UN-mirrored image to MediaPipe (it works on the real image)
+  // Send the un-mirrored image to MediaPipe (it works on the real image)
   tmpCtx.drawImage(DOM.webcam, 0, 0, w, h);
 
   return tmpCanvas.toDataURL("image/jpeg", JPEG_QUALITY);
